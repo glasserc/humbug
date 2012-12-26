@@ -10,6 +10,15 @@ class HumbleNode(object):
         self.node = node
 
 class HumbleDownload(HumbleNode):
+    """A HumbleNode corresponding to a <div class="download">.
+
+    This corresponds to a button on the Humble Bundle website, which
+    generally means a downloadable file, though occasionally just
+    means a link to an affiliate website or a Stream link."""
+
+    name = property(
+        P.text(P.find('span', 'label')))
+
     # Absent on a couple of elements where the link goes to a different website
     md5 = property(
         P.attr('href', P.find('a', 'dlmd5'), strip_hash=True))
@@ -17,11 +26,12 @@ class HumbleDownload(HumbleNode):
     modified = property(
         P.attr('data-timestamp', P.find('a', 'dldate', optional=True)))
 
-    name = property(
-        P.text(P.find('span', 'label')))
-
     @property
     def type(self):
+        """Return the OS that the binary corresponds to.
+
+        Known values at present are: linux, windows, mac, air, flash.
+        """
         dlnode = self.node.parent  # <div class="downloads linux show">
         classes = dlnode['class']
         for cls in classes:
