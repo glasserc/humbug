@@ -5,7 +5,7 @@ Handlers for different kind of items found in the Humble Bundle.
 import os.path
 from src.config import BOOKS_SUBDIR
 from src.config import GAMES_SUBDIR, GAME_TYPE_SUBDIR
-from src.config import MOVIES_SUBDIR, UNPACKED_NAMES
+from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
 from src.config import NAME_EXCEPTIONS
 
 class HumbugHandler(object):
@@ -118,7 +118,10 @@ class BookHandler(HumbugHandler):
 
 class MovieHandler(HumbugHandler):
     def download_path(self, dl):
-        return os.path.join(MOVIES_SUBDIR, self.title)
+        movie_path = os.path.join(MOVIES_SUBDIR, self.title)
+        if dl.type == 'audio':
+            movie_path = os.path.join(movie_path, GAME_TYPE_SUBDIR['audio'])
+        return movie_path
 
     def download_filename(self, dl):
         # For some reason, the Humble Bundle people package their
