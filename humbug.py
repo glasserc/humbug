@@ -28,12 +28,17 @@ class Humbug(object):
         for item in page.iteritems():
             if item.is_book:
                 self.handle_book(item)
+            elif item.title == 'Kooky' or item.title.startswith('Indie Game'):
+                self.handle_movie(item)
             else:
                 self.handle_game(item)
 
     def handle_book(self, item):
         assert not item.has_soundtrack
         print "Book:", item, item.title
+
+    def handle_movie(self, item):
+        print "Movie:", item, item.title
 
     def handle_game(self, item):
         assert not item.is_book
