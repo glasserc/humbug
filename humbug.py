@@ -11,8 +11,8 @@ GAME_TYPE_SUBDIR = {
     'android': 'Android',
     'windows': 'Windows - i386',
     'linux': {
-        'arc64': 'Linux - x86_64',
-        'arc32': 'Linux - i386',
+        '64-bit': 'Linux - x86_64',
+        '32-bit': 'Linux - i386',
         },
     'mac': 'OSX',
     'audio': 'Soundtrack',
@@ -53,19 +53,35 @@ class Humbug(object):
     def handle_game(self, item):
         assert not item.is_book
         print 'Game:', item, item.title, item.has_soundtrack
+        # md5 -> True if we've already dealt with this.
+        # Necessary because sometimes .sh files show up in both a 32-bit download
+        # and a 64-bit download.
+        versions = {}
         for dl in item.downloads():
-            md5 = ''
-            if dl.is_file: md5 = dl.md5
+            if not dl.is_file:
+                # Well, we can't download it.  Sometimes this is a
+                # link to another website, so the user has to deal
+                # with it.
+                print "Can't download non-file {} for {}".format(
+                    dl.name, item.title)
+                continue
+            md5 = dl.md5
+            if md5 in versions:
+                # we've already seen this one
+                # FIXME: symlink new to existing version, or copy symlink?
+                continue
             type_dir = GAME_TYPE_SUBDIR[dl.type]
             if isinstance(type_dir, dict):
                 type_dir = type_dir[dl.arch]
             target_filename = os.path.join(GAMES_SUBDIR, item.title,
                                            type_dir,
                                            dl.filename)
+            versions[md5] = True
             # Use lexists because this could be a symlink that wasn't
             # annex-get'd on this machine
             if os.path.lexists(target_filename):
-                print "  Exists:", target_filename
+                #print "  Exists:", target_filename
+                pass
             else:
                 print "  Get:", target_filename, dl.type, dl.name, md5, dl.modified
 

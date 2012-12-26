@@ -37,11 +37,13 @@ class HumbleDownload(HumbleNode):
     @property
     def arch(self):
         classes = self.node['class']
-        if 'arc32' in classes:
-            return 'arc32'
         if 'arc64' in classes:
-            return 'arc64'
-        raise ValueError, 'architecture not specified'
+            return '64-bit'
+
+        if '64-bit' in self.name:
+            return '64-bit'
+
+        return '32-bit'
 
     @property
     def filename(self):
