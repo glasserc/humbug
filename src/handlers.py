@@ -27,7 +27,9 @@ class HumbugHandler(object):
 
         return NAME_EXCEPTIONS.get(name, name)
 
-    def get(self, item, dl, target_dir, target_filename=None):
+    DISABLE_DOWNLOAD = True
+
+    def get(self, item, dl, target_dir, target_filename=None, unpack=False):
         """Download from the link contained in `dl` a file to the path
         in target_dir."""
         if target_filename == None:
@@ -41,6 +43,8 @@ class HumbugHandler(object):
             pass
         else:
             print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
+            if self.DISABLE_DOWNLOAD:
+                return
 
     def sanity_check(self):
         """Hook to let you make sure that you're handling the right
