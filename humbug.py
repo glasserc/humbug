@@ -18,6 +18,34 @@ GAME_TYPE_SUBDIR = {
     'audio': 'Soundtrack',
 }
 
+NAME_EXCEPTIONS = {
+    # Penumbra Overture is really "Penumbra: Overture", which should
+    # be a hyphen as above.
+    'Penumbra Overture': 'Penumbra - Overture',
+
+    # Don't keep prefix'd "The", and downcase 'Of'
+    'The Binding Of Isaac': 'Binding of Isaac',
+    'The Binding of Isaac + Wrath of the Lamb DLC': 'Binding of Isaac + Wrath of the Lamb DLC',
+
+    # Correct capitalization according to website.
+    'FTL - Faster than Light': 'FTL - Faster Than Light',
+    # Correct capitalization, according to World of Goo website
+    'World Of Goo': 'World of Goo',
+}
+
+def clean_name(name):
+    # Don't use ':' in filename. ':' is illegal in FAT/NTFS filenames
+    # so limits the portability of your annex.
+    # 'Amnesia: The Dark Descent' -> 'Amnesia - The Dark Descent',
+    name = name.replace(':', ' -')
+
+    # 'HD' is a format, not part of the game name.
+    # 'Eufloria HD' -> 'Eufloria'
+    if name.endswith(' HD'):
+        name = name[:-3]
+
+    return NAME_EXCEPTIONS.get(name, name)
+
 class Humbug(object):
     def __init__(self, args=None):
         parser = argparse.ArgumentParser(description="munge Humble Bundle page into a git annex")
@@ -52,7 +80,9 @@ class Humbug(object):
 
     def handle_game(self, item):
         assert not item.is_book
-        print 'Game:', item, item.title, item.has_soundtrack
+        title = item.title
+        title = clean_name(title)
+        #print 'Game:', item, item.has_soundtrack
         # md5 -> True if we've already dealt with this.
         # Necessary because sometimes .sh files show up in both a 32-bit download
         # and a 64-bit download.
@@ -63,7 +93,7 @@ class Humbug(object):
                 # link to another website, so the user has to deal
                 # with it.
                 print "Can't download non-file {} for {}".format(
-                    dl.name, item.title)
+                    dl.name, title)
                 continue
             md5 = dl.md5
             if md5 in versions:
@@ -73,7 +103,7 @@ class Humbug(object):
             type_dir = GAME_TYPE_SUBDIR[dl.type]
             if isinstance(type_dir, dict):
                 type_dir = type_dir[dl.arch]
-            target_filename = os.path.join(GAMES_SUBDIR, item.title,
+            target_filename = os.path.join(GAMES_SUBDIR, title,
                                            type_dir,
                                            dl.filename)
             versions[md5] = True
