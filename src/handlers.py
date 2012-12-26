@@ -42,16 +42,23 @@ class HumbugHandler(object):
         else:
             print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
 
+    def sanity_check(self):
+        """Hook to let you make sure that you're handling the right
+        kind of object."""
+        pass
 
-class BookHandler(HumbugHandler):
     def handle(self):
-        assert not self.item.has_soundtrack
-        print "Book:", self.item, self.title
+        """Superclass handle method.
 
-class MovieHandler(HumbugHandler):
-    def handle(self):
+        Iterate over all the downloads available for this object,
+        signalling non-files to the user and ignoring duplicate files.
+
+        Call self.download_filename(item, filename) and
+        self.download_path(item, filename) to figure out where to
+        download this item to."""
+        self.sanity_check()
         item = self.item
-        #print "Movie:", item, item.title
+        #print self.__class__.__name__, ":", item, item.title
         versions = {}
         non_files = {}
         title = self.title
@@ -64,51 +71,64 @@ class MovieHandler(HumbugHandler):
                 # user. But let's only flag it once per link.
                 if dl.name in non_files:
                     continue
-                print "Can't download non-file {} for {}".format(
+                print "Can't download non-file '{}' (for '{}')".format(
                     dl.name, title)
                 non_files[dl.name] = True
                 continue
+
             if dl.md5 in versions:
-                # Seems like these movies are being listed in each OS
+                # This dl was listed multiple times.
+                # Movies are listed once per OS :(.
+                # Some .sh files are listed under both 32-bit and 64-bit.
+                # FIXME: if it's a .sh, maybe copy the symlink, or link to it?
                 continue
             versions[dl.md5] = True
 
-            # For some reason, the Humble Bundle people package their
-            # movies as .zip files. In the annex they should be stored
-            # unpacked.
-            filename = UNPACKED_NAMES.get('{}/{}'.format(item.title, dl.name),
-                                          dl.filename)
+            target_dir = self.download_path(dl)
+            filename = self.download_filename(dl)
+            unpack = self.should_unpack(dl)
 
-            target_dir = os.path.join(MOVIES_SUBDIR, title)
             self.get(item, dl, target_dir, filename)
 
+    def download_filename(self, dl):
+        return dl.filename
+
+    def download_path(self, dl):
+        raise NotImplementedYetError, 'please override me'
+
+    def should_unpack(self, dl):
+        return False
+
+class BookHandler(HumbugHandler):
+    def sanity_check(self):
+        assert not self.item.has_soundtrack
+
+    def download_path(self, dl):
+        return os.path.join(BOOKS_SUBDIR, self.clean_name(self.item.subtitle),
+                            self.title)
+
+class MovieHandler(HumbugHandler):
+    def download_path(self, dl):
+        return os.path.join(MOVIES_SUBDIR, self.title)
+
+    def download_filename(self, dl):
+        # For some reason, the Humble Bundle people package their
+        # movies as .zip files. In the annex they should be stored
+        # unpacked.
+        return UNPACKED_NAMES.get('{}/{}'.format(self.title, dl.name),
+                                  dl.filename)
+
+    def should_unpack(self, dl):
+        return not dl.type == 'audio'
+
 class GameHandler(HumbugHandler):
-    def handle(self):
-        item = self.item
-        assert not item.is_book
-        title = self.title
-        #print 'Game:', item, item.has_soundtrack
-        # md5 -> True if we've already dealt with this.
-        # Necessary because sometimes .sh files show up in both a 32-bit download
-        # and a 64-bit download.
-        versions = {}
-        for dl in item.downloads():
-            if not dl.is_file:
-                # Well, we can't download it.  Sometimes this is a
-                # link to another website, so the user has to deal
-                # with it.
-                print "Can't download non-file {} for {}".format(
-                    dl.name, title)
-                continue
-            md5 = dl.md5
-            if md5 in versions:
-                # we've already seen this one
-                # FIXME: symlink new to existing version, or copy symlink?
-                continue
-            type_dir = GAME_TYPE_SUBDIR[dl.type]
-            if isinstance(type_dir, dict):
-                type_dir = type_dir[dl.arch]
-            target_dir = os.path.join(GAMES_SUBDIR, title,
-                                           type_dir)
-            versions[md5] = True
-            self.get(item, dl, target_dir)
+    def sanity_check(self):
+        assert not self.item.is_book
+
+    def download_path(self, dl):
+        type_dir = GAME_TYPE_SUBDIR[dl.type]
+        if isinstance(type_dir, dict):
+            type_dir = type_dir[dl.arch]
+        target_dir = os.path.join(GAMES_SUBDIR, self.title,
+                                  type_dir)
+        return target_dir
