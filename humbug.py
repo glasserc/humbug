@@ -2,46 +2,8 @@ import sys
 import os.path
 import argparse
 from src.humble_page import HumblePage
-
-# Assumes you run from inside the annex
-ANNEX_LOCATION = './'
-BOOKS_SUBDIR = 'Books/Humble Bundle/'
-GAMES_SUBDIR = 'Games/'
-MOVIES_SUBDIR = 'Videos/Movies/'
-GAME_TYPE_SUBDIR = {
-    'android': 'Android',
-    'windows': 'Windows - i386',
-    'linux': {
-        '64-bit': 'Linux - x86_64',
-        '32-bit': 'Linux - i386',
-        },
-    'mac': 'OSX',
-    'mac10.5': 'OSX 10.5',
-    'mac10.6+': 'OSX 10.6+',
-    'air': 'Air',
-    'flash': 'Flash',
-    'audio': 'Soundtrack',
-}
-
-NAME_EXCEPTIONS = {
-    # Penumbra Overture is really "Penumbra: Overture", which should
-    # be a hyphen as above.
-    'Penumbra Overture': 'Penumbra - Overture',
-
-    # Don't keep prefix'd "The", and downcase 'Of'
-    'The Binding Of Isaac': 'Binding of Isaac',
-    'The Binding of Isaac + Wrath of the Lamb DLC': 'Binding of Isaac + Wrath of the Lamb DLC',
-
-    # Correct capitalization according to website.
-    'FTL - Faster than Light': 'FTL - Faster Than Light',
-    # Correct capitalization, according to World of Goo website
-    'World Of Goo': 'World of Goo',
-}
-
-UNPACKED_NAMES = {
-    'Kooky/Highest Quality MP4': 'Kooky [Top quality, 720p].mp4',
-    'Kooky/Recommended MP4': 'Kooky [Normal quality, 720p].mp4',
-}
+from src.config import ANNEX_LOCATION
+from src.config import *
 
 class HumbugHandler(object):
     def __init__(self, application, item):
