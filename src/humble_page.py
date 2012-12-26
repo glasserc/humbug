@@ -30,8 +30,19 @@ class HumbleDownload(HumbleNode):
     def type(self):
         """Return the OS that the binary corresponds to.
 
-        Known values at present are: linux, windows, mac, air, flash.
+        Known values at present are linux, windows, mac, mac10.5,
+        mac10.6+, air, flash.
         """
+        a_node = self.node.find('a')
+        if a_node.text.strip() == 'Download Air':
+            return 'air'
+        if a_node.text.strip() == 'Flash Package':
+            return 'flash'
+        if 'Mac OS 10.5' in a_node.text:
+            return 'mac10.5'
+        if 'Mac OS 10.6+' in a_node.text:
+            return 'mac10.6+'
+
         dlnode = self.node.parent  # <div class="downloads linux show">
         classes = dlnode['class']
         for cls in classes:

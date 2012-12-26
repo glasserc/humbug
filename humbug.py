@@ -15,6 +15,10 @@ GAME_TYPE_SUBDIR = {
         '32-bit': 'Linux - i386',
         },
     'mac': 'OSX',
+    'mac10.5': 'OSX 10.5',
+    'mac10.6+': 'OSX 10.6+',
+    'air': 'Air',
+    'flash': 'Flash',
     'audio': 'Soundtrack',
 }
 
