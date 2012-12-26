@@ -92,7 +92,7 @@ class HumbugHandler(object):
             filename = self.download_filename(dl)
             unpack = self.should_unpack(dl)
 
-            self.get(item, dl, target_dir, filename)
+            self.get(item, dl, target_dir, filename, unpack)
 
     def download_filename(self, dl):
         return dl.filename
