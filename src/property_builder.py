@@ -9,13 +9,28 @@ class Section(object):
 """
 
 def find(*args, **kwargs):
+    optional = kwargs.pop('optional', False)
     def wrapper(self):
-        return self.node.find(*args, **kwargs)
+        node = self.node.find(*args, **kwargs)
+        if not optional and not node:
+            raise ValueError, "couldn't find node {} {} at {}".format(
+                args, kwargs, self.node)
+        return node
     return wrapper
 
 def text(element):
     def wrapper(self):
         return element(self).text.strip()
+    return wrapper
+
+def attr(name, element, strip_hash=False):
+    def wrapper(self):
+        node = element(self)
+        if not node: return node
+        ret = node[name]
+        if strip_hash:
+            ret = ret.strip('#')
+        return ret
     return wrapper
 
 def exists(element):
