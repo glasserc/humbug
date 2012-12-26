@@ -40,6 +40,9 @@ NAME_EXCEPTIONS = {
     'The Binding Of Isaac': 'Binding of Isaac',
     'The Binding of Isaac + Wrath of the Lamb DLC': 'Binding of Isaac + Wrath of the Lamb DLC',
 
+    # Rename this to be Introversion-specific
+    'City Generator Tech Demo': 'Introversion City Generator Demo',
+
     # Correct capitalization according to website.
     'FTL - Faster than Light': 'FTL - Faster Than Light',
     # Correct capitalization, according to World of Goo website
