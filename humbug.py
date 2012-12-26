@@ -43,53 +43,53 @@ UNPACKED_NAMES = {
     'Kooky/Recommended MP4': 'Kooky [Normal quality, 720p].mp4',
 }
 
-def clean_name(name):
-    # Don't use ':' in filename. ':' is illegal in FAT/NTFS filenames
-    # so limits the portability of your annex.
-    # 'Amnesia: The Dark Descent' -> 'Amnesia - The Dark Descent',
-    name = name.replace(':', ' -')
+class HumbugHandler(object):
+    def __init__(self, application, item):
+        self.application = application
+        self.item = item
+        self.title = self.clean_name(item.title)
 
-    # 'HD' is a format, not part of the game name.
-    # 'Eufloria HD' -> 'Eufloria'
-    if name.endswith(' HD'):
-        name = name[:-3]
+    def clean_name(self, name):
+        # Don't use ':' in filename. ':' is illegal in FAT/NTFS filenames
+        # so limits the portability of your annex.
+        # 'Amnesia: The Dark Descent' -> 'Amnesia - The Dark Descent',
+        name = name.replace(':', ' -')
 
-    return NAME_EXCEPTIONS.get(name, name)
+        # 'HD' is a format, not part of the game name.
+        # 'Eufloria HD' -> 'Eufloria'
+        if name.endswith(' HD'):
+            name = name[:-3]
 
-class Humbug(object):
-    def __init__(self, args=None):
-        parser = argparse.ArgumentParser(description="munge Humble Bundle page into a git annex")
-        parser.add_argument('filename', type=str,
-                            help="a saved version of the home.html page")
-        self.config = parser.parse_args(args)
+        return NAME_EXCEPTIONS.get(name, name)
 
-    def go(self):
-        git_dir = os.path.join(ANNEX_LOCATION, '.git')
-        annex_dir = os.path.join(git_dir, 'annex')
-        if not os.path.exists(git_dir) or \
-                not os.path.exists(annex_dir):
-            print "This doesn't seem like a git annex."
-            print "Couldn't find {} or {}.".format(git_dir, annex_dir)
-            print "Please run from inside a git annex."
-        page = HumblePage(self.config)
-        print page.title
-        for item in page.iteritems():
-            if item.is_book:
-                self.handle_book(item)
-            elif item.title == 'Kooky' or item.title.startswith('Indie Game'):
-                self.handle_movie(item)
-            else:
-                self.handle_game(item)
+    def get(self, item, dl, target_dir, target_filename=None):
+        """Download from the link contained in `dl` a file to the path
+        in target_dir."""
+        if target_filename == None:
+            target_filename = dl.filename
+        full_path = os.path.join(target_dir, target_filename)
 
-    def handle_book(self, item):
-        assert not item.has_soundtrack
-        print "Book:", item, item.title
+        # Use lexists because this could be a symlink that wasn't
+        # annex-get'd on this machine
+        if os.path.lexists(full_path):
+            #print "  Exists:", target_filename
+            pass
+        else:
+            print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
 
-    def handle_movie(self, item):
+
+class BookHandler(HumbugHandler):
+    def handle(self):
+        assert not self.item.has_soundtrack
+        print "Book:", self.item, self.title
+
+class MovieHandler(HumbugHandler):
+    def handle(self):
+        item = self.item
         #print "Movie:", item, item.title
         versions = {}
         non_files = {}
-        title = clean_name(item.title)
+        title = self.title
         for dl in item.downloads():
             if not dl.is_file:
                 # Well, we can't download it. This could be a Stream
@@ -117,26 +117,11 @@ class Humbug(object):
             target_dir = os.path.join(MOVIES_SUBDIR, title)
             self.get(item, dl, target_dir, filename)
 
-    def get(self, item, dl, target_dir, target_filename=None):
-        """Download from the link contained in `dl` a file to the path
-        in target_dir."""
-        if target_filename == None:
-            target_filename = dl.filename
-        full_path = os.path.join(target_dir, target_filename)
-
-        # Use lexists because this could be a symlink that wasn't
-        # annex-get'd on this machine
-        if os.path.lexists(full_path):
-            #print "  Exists:", target_filename
-            pass
-        else:
-            print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
-
-
-    def handle_game(self, item):
+class GameHandler(HumbugHandler):
+    def handle(self):
+        item = self.item
         assert not item.is_book
-        title = item.title
-        title = clean_name(title)
+        title = self.title
         #print 'Game:', item, item.has_soundtrack
         # md5 -> True if we've already dealt with this.
         # Necessary because sometimes .sh files show up in both a 32-bit download
@@ -163,6 +148,33 @@ class Humbug(object):
             versions[md5] = True
             self.get(item, dl, target_dir)
 
+
+class Humbug(object):
+    def __init__(self, args=None):
+        parser = argparse.ArgumentParser(description="munge Humble Bundle page into a git annex")
+        parser.add_argument('filename', type=str,
+                            help="a saved version of the home.html page")
+        self.config = parser.parse_args(args)
+
+    def go(self):
+        git_dir = os.path.join(ANNEX_LOCATION, '.git')
+        annex_dir = os.path.join(git_dir, 'annex')
+        if not os.path.exists(git_dir) or \
+                not os.path.exists(annex_dir):
+            print "This doesn't seem like a git annex."
+            print "Couldn't find {} or {}.".format(git_dir, annex_dir)
+            print "Please run from inside a git annex."
+        page = HumblePage(self.config)
+        print page.title
+        for item in page.iteritems():
+            if item.is_book:
+                handler = BookHandler
+            elif item.title == 'Kooky' or item.title.startswith('Indie Game'):
+                handler = MovieHandler
+            else:
+                handler = GameHandler
+
+            handler(self, item).handle()
 
 if __name__ == '__main__':
     app = Humbug(sys.argv[1:])
