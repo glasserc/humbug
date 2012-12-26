@@ -1,8 +1,14 @@
 import sys
+import os.path
 import argparse
 from bs4 import BeautifulSoup
 
 from src import property_builder as P
+
+# Assumes you run from inside the annex
+ANNEX_LOCATION = './'
+BOOKS_SUBDIR = 'Books/Humble Bundle/'
+GAMES_SUBDIR = 'Games/'
 
 class HumbleNode(object):
     """Class corresponding a node in the Humble Bundle download page.
@@ -72,6 +78,13 @@ class Humbug(object):
         self.config = parser.parse_args(args)
 
     def go(self):
+        git_dir = os.path.join(ANNEX_LOCATION, '.git')
+        annex_dir = os.path.join(git_dir, 'annex')
+        if not os.path.exists(git_dir) or \
+                not os.path.exists(annex_dir):
+            print "This doesn't seem like a git annex."
+            print "Couldn't find {} or {}.".format(git_dir, annex_dir)
+            print "Please run from inside a git annex."
         page = HumblePage(self.config)
         print page.title
         for item in page.iteritems():
