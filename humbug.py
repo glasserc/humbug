@@ -7,6 +7,7 @@ from src.humble_page import HumblePage
 ANNEX_LOCATION = './'
 BOOKS_SUBDIR = 'Books/Humble Bundle/'
 GAMES_SUBDIR = 'Games/'
+MOVIES_SUBDIR = 'Videos/Movies/'
 GAME_TYPE_SUBDIR = {
     'android': 'Android',
     'windows': 'Windows - i386',
@@ -35,6 +36,11 @@ NAME_EXCEPTIONS = {
     'FTL - Faster than Light': 'FTL - Faster Than Light',
     # Correct capitalization, according to World of Goo website
     'World Of Goo': 'World of Goo',
+}
+
+UNPACKED_NAMES = {
+    'Kooky/Highest Quality MP4': 'Kooky [Top quality, 720p].mp4',
+    'Kooky/Recommended MP4': 'Kooky [Normal quality, 720p].mp4',
 }
 
 def clean_name(name):
@@ -80,7 +86,52 @@ class Humbug(object):
         print "Book:", item, item.title
 
     def handle_movie(self, item):
-        print "Movie:", item, item.title
+        #print "Movie:", item, item.title
+        versions = {}
+        non_files = {}
+        title = clean_name(item.title)
+        for dl in item.downloads():
+            if not dl.is_file:
+                # Well, we can't download it. This could be a Stream
+                # link, which is OK if it's accompanied by other
+                # download links.
+                # To be safe, let's flag it for the
+                # user. But let's only flag it once per link.
+                if dl.name in non_files:
+                    continue
+                print "Can't download non-file {} for {}".format(
+                    dl.name, title)
+                non_files[dl.name] = True
+                continue
+            if dl.md5 in versions:
+                # Seems like these movies are being listed in each OS
+                continue
+            versions[dl.md5] = True
+
+            # For some reason, the Humble Bundle people package their
+            # movies as .zip files. In the annex they should be stored
+            # unpacked.
+            filename = UNPACKED_NAMES.get('{}/{}'.format(item.title, dl.name),
+                                          dl.filename)
+
+            target_dir = os.path.join(MOVIES_SUBDIR, title)
+            self.get(item, dl, target_dir, filename)
+
+    def get(self, item, dl, target_dir, target_filename=None):
+        """Download from the link contained in `dl` a file to the path
+        in target_dir."""
+        if target_filename == None:
+            target_filename = dl.filename
+        full_path = os.path.join(target_dir, target_filename)
+
+        # Use lexists because this could be a symlink that wasn't
+        # annex-get'd on this machine
+        if os.path.lexists(full_path):
+            #print "  Exists:", target_filename
+            pass
+        else:
+            print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
+
 
     def handle_game(self, item):
         assert not item.is_book
@@ -107,17 +158,10 @@ class Humbug(object):
             type_dir = GAME_TYPE_SUBDIR[dl.type]
             if isinstance(type_dir, dict):
                 type_dir = type_dir[dl.arch]
-            target_filename = os.path.join(GAMES_SUBDIR, title,
-                                           type_dir,
-                                           dl.filename)
+            target_dir = os.path.join(GAMES_SUBDIR, title,
+                                           type_dir)
             versions[md5] = True
-            # Use lexists because this could be a symlink that wasn't
-            # annex-get'd on this machine
-            if os.path.lexists(target_filename):
-                #print "  Exists:", target_filename
-                pass
-            else:
-                print "  Get:", target_filename, dl.type, dl.name, md5, dl.modified
+            self.get(item, dl, target_dir)
 
 
 if __name__ == '__main__':
