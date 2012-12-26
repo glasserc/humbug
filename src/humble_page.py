@@ -1,3 +1,4 @@
+import urlparse
 from bs4 import BeautifulSoup
 from src import property_builder as P
 
@@ -34,6 +35,22 @@ class HumbleDownload(HumbleNode):
             return cls
 
     @property
+    def arch(self):
+        classes = self.node['class']
+        if 'arc32' in classes:
+            return 'arc32'
+        if 'arc64' in classes:
+            return 'arc64'
+        raise ValueError, 'architecture not specified'
+
+    @property
+    def filename(self):
+        a_node = self.node.find('a')
+        href = a_node['data-web']
+        parsed = urlparse.urlparse(href)
+        return parsed.path.strip('/')
+
+    @property
     def is_file(self):
         return self.node.find('a')['data-web']. \
             startswith('http://files.humblebundle.com')
@@ -41,6 +58,8 @@ class HumbleDownload(HumbleNode):
 class HumbleItem(HumbleNode):
     title = property(
         P.text(P.find('div', 'title')))
+    subtitle = property(
+        P.text(P.find('div', 'subtitle')))
     is_book = property(
         P.exists(P.text(P.find('div', 'downloads ebook'))))
     has_soundtrack = property(

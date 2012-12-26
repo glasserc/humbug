@@ -7,6 +7,16 @@ from src.humble_page import HumblePage
 ANNEX_LOCATION = './'
 BOOKS_SUBDIR = 'Books/Humble Bundle/'
 GAMES_SUBDIR = 'Games/'
+GAME_TYPE_SUBDIR = {
+    'android': 'Android',
+    'windows': 'Windows - i386',
+    'linux': {
+        'arc64': 'Linux - x86_64',
+        'arc32': 'Linux - i386',
+        },
+    'mac': 'OSX',
+    'audio': 'Soundtrack',
+}
 
 class Humbug(object):
     def __init__(self, args=None):
@@ -46,7 +56,18 @@ class Humbug(object):
         for dl in item.downloads():
             md5 = ''
             if dl.is_file: md5 = dl.md5
-            print "  ", dl.type, dl.name, md5, dl.modified
+            type_dir = GAME_TYPE_SUBDIR[dl.type]
+            if isinstance(type_dir, dict):
+                type_dir = type_dir[dl.arch]
+            target_filename = os.path.join(GAMES_SUBDIR, item.title,
+                                           type_dir,
+                                           dl.filename)
+            # Use lexists because this could be a symlink that wasn't
+            # annex-get'd on this machine
+            if os.path.lexists(target_filename):
+                print "  Exists:", target_filename
+            else:
+                print "  Get:", target_filename, dl.type, dl.name, md5, dl.modified
 
 
 if __name__ == '__main__':
