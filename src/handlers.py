@@ -104,7 +104,12 @@ class BookHandler(HumbugHandler):
         assert not self.item.has_soundtrack
 
     def download_path(self, dl):
-        return os.path.join(BOOKS_SUBDIR, self.clean_name(self.item.subtitle),
+        author_name = self.clean_name(self.item.subtitle)
+        # We keep '&' as a valid part of a name for a work, but for
+        # authors it's generally better to have 'and'
+        author_name = author_name.replace('&', 'and')
+
+        return os.path.join(BOOKS_SUBDIR, author_name,
                             self.title)
 
 class MovieHandler(HumbugHandler):
