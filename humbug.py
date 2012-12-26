@@ -8,9 +8,12 @@ class HumbleItem(object):
     def __init__(self, node):
         self.node = node
 
-    title = property(P.text(P.find('div', 'title')))
-    is_book = property(P.exists(P.text(P.find('div', 'downloads ebook'))))
-    has_soundtrack = property(P.exists(P.text(P.find('div', 'downloads audio'))))
+    title = property(
+        P.text(P.find('div', 'title')))
+    is_book = property(
+        P.exists(P.text(P.find('div', 'downloads ebook'))))
+    has_soundtrack = property(
+        P.exists(P.text(P.find('div', 'downloads audio'))))
 
 class HumblePage(object):
     def __init__(self, config):
