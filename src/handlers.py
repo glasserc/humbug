@@ -63,17 +63,22 @@ class HumbugHandler(object):
                 non_files[dl.name] = True
                 continue
 
+            target_dir = self.download_path(dl)
+            filename = self.download_filename(dl)
+            unpack = self.should_unpack(dl)
+
             if dl.md5 in versions:
                 # This dl was listed multiple times.
                 # Movies are listed once per OS :(.
                 # Some .sh files are listed under both 32-bit and 64-bit.
                 # FIXME: if it's a .sh, maybe copy the symlink, or link to it?
+
+                # At least mark the file as found if it does exist, so
+                # we don't confuse it with anything else.
+                if os.path.lexists(os.path.join(target_dir, filename)):
+                    self.application.found_file(target_dir, filename)
                 continue
             versions[dl.md5] = True
-
-            target_dir = self.download_path(dl)
-            filename = self.download_filename(dl)
-            unpack = self.should_unpack(dl)
 
             self.application.enqueue(self, item, dl, target_dir, filename, unpack)
 

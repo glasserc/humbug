@@ -22,7 +22,7 @@ class Humbug(object):
         # List of local files we had in the relevant directories.
         self.encountered_files = {}
         # List of local files we had that were matched.
-        self.found_files = []
+        self.found_files = {}
         # List of files we don't have already.
         self.download_queue = []
 
@@ -48,6 +48,9 @@ class Humbug(object):
 
         self.resolve_missing()
 
+    def found_file(self, target_dir, target_file):
+        self.found_files.setdefault(target_dir, set()).add(target_file)
+
     def enqueue(self, handler, item, dl, target_dir, target_filename=None, unpack=False):
         """Download from the link contained in `dl` a file to the path
         in target_dir."""
@@ -62,7 +65,7 @@ class Humbug(object):
         # annex-get'd on this machine
         if os.path.lexists(full_path):
             #print "  Exists:", target_filename
-            self.found_files.append((target_dir, target_filename))
+            self.found_file(target_dir, target_filename)
         else:
             print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
             self.download_queue.append(HumbugDownload(handler, item, dl, target_dir, target_filename, unpack))
@@ -76,8 +79,9 @@ class Humbug(object):
         extant file needs to be blown away and replaced by returning
         OldVersion."""
         # Remove all the found files from self.encountered_files
-        for dir, file in self.found_files:
-            self.encountered_files[dir].remove(file)
+        for dir, files in self.found_files.iteritems():
+            for file in files:
+                self.encountered_files[dir].remove(file)
 
         for hdl in self.download_queue[:]:
             # Check if any of the other files in that directory seem to match
