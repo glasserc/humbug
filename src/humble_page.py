@@ -1,6 +1,8 @@
+import os.path
 import urlparse
 from bs4 import BeautifulSoup
 from src import property_builder as P
+from src.config import SOUNDTRACK_TYPES
 
 class HumbleNode(object):
     """Class corresponding a node in the Humble Bundle download page.
@@ -34,9 +36,14 @@ class HumbleDownload(HumbleNode):
         mac10.6+, air, flash.
         """
         a_node = self.node.find('a')
+        # Download Air and Flash Package happen to be the texts for
+        # the buttons on Canabalt, which has the same files for all
+        # operating systems, so we treat it as a separate OS.
         if a_node.text.strip() == 'Download Air':
             return 'air'
-        if a_node.text.strip() == 'Flash Package':
+        # Some other games offer a "Flash" version as well as native
+        # packages. Treat Flash ones as a separate OS.
+        if 'Flash' in a_node.text:
             return 'flash'
         if 'Mac OS 10.5' in a_node.text:
             return 'mac10.5'
@@ -54,6 +61,35 @@ class HumbleDownload(HumbleNode):
                 continue
 
             return cls
+
+    @property
+    def filetype(self):
+        """The extension or other cue that someone will be able to use
+        to recognize the download in a local file.
+
+        None means you're on your own. Hopefully you've kept this file
+        by itself in a directory.."""
+        # Try the name
+        words = self.name.split()
+        if len(words) == 1:
+            # Maybe it's x86_64.deb
+            words = os.path.splitext(words[0])
+            if not words[-1]:
+                # it was just .zip or .sh or something
+                words = [words[0]]
+        if words[-1].startswith('.'):
+            return words[-1]
+        if words[-1] in SOUNDTRACK_TYPES:
+            return words[-1]
+
+        if self.name in ['Download', 'Download Mobile']:
+            return None
+        if self.type in ['air', 'flash']:
+            # Who knows what those files will look like
+            return None
+
+        print "This is weird. Can't figure out the filetype for", self.name, self.filename
+        return None
 
     @property
     def arch(self):

@@ -3,7 +3,7 @@ Handlers for different kind of items found in the Humble Bundle.
 """
 
 import os.path
-from src.config import NAME_EXCEPTIONS
+from src.config import NAME_EXCEPTIONS, SOUNDTRACK_TYPES
 
 # BookHandler
 from src.config import BOOKS_SUBDIR
@@ -107,6 +107,27 @@ class HumbugHandler(object):
         Returns a list of (FileMatch, hdl, filename)."""
         return []
 
+    def filename_could_match(self, filename, filetype):
+        # Don't match against any files. Force caller to fall back to
+        # hoping there's only one file in the directory.
+        if filetype == None: return False
+
+        if filetype in SOUNDTRACK_TYPES:
+            return filetype in filename or filetype.lower() in filename
+
+        basename, ext = os.path.splitext(filename)
+        if basename.endswith('.tar'):
+            ext = '.tar' + ext
+
+        if ext in ['.deb', '.rpm', '.tar.gz', '.tar.bz2', '.sh', '.bin', '.run',
+                   '.exe', '.dmg', '.zip']:
+            # We know this format.
+            return ext == filetype
+
+        # We don't know this format. It might match..?
+        return True
+
+
 class BookHandler(HumbugHandler):
     def sanity_check(self):
         assert not self.item.has_soundtrack
@@ -149,32 +170,6 @@ class GameHandler(HumbugHandler):
         target_dir = os.path.join(GAMES_SUBDIR, self.title,
                                   type_dir)
         return target_dir
-
-    def dl_filetype(self, dl):
-        words = dl.name.split()
-        if len(words) == 1:
-            # Maybe it's x86_64.deb
-            words = os.path.splitext(words[0])
-            if not words[-1]:
-                # it was just .zip or .sh or something
-                words = [words[0]]
-        if words[-1].startswith('.'):
-            return words[-1]
-        if words[-1] in ['MP3', 'FLAC']:
-            return words[-1]
-
-    def filename_could_match(self, filename, filetype):
-        basename, ext = os.path.splitext(filename)
-        if basename.endswith('.tar'):
-            ext = '.tar' + ext
-
-        if ext in ['.deb', '.rpm', '.tar.gz', '.tar.bz2', '.sh', '.bin', '.run',
-                   '.exe', '.dmg']:
-            # We know this format.
-            return ext == filetype
-
-        # We don't know this format. It might match..?
-        return True
 
     FILEPART_RE = re.compile('[-_.]')
     NUMBER_RE = re.compile('(\d+)')
@@ -221,20 +216,7 @@ class GameHandler(HumbugHandler):
         file_list = file_list[:]
 
         for hdl in hdl_list:
-            filetype = self.dl_filetype(hdl.dl)
-            if not filetype:
-                if hdl.dl.name in ['Download', 'Download Mobile']:
-                    # Just compare against the (hopefully only) file in the dir
-                    #print hdl.dl.name, hdl.target_filename
-                    pass
-                elif hdl.dl.name in ['Download Flash', 'Flash']:
-                    # Hopefully this is an OS-specific version that
-                    # happens to be implemented using Flash
-                    pass
-                else:
-                    print "This is weird. Can't figure out the filetype for", hdl.dl.name, hdl.target_filename
-                    continue
-
+            filetype = hdl.dl.filetype
             target_file = None
             for filename in file_list:
                 if self.filename_could_match(filename, filetype):
