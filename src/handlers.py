@@ -4,6 +4,7 @@ Handlers for different kind of items found in the Humble Bundle.
 
 import os.path
 from src.config import NAME_EXCEPTIONS, SOUNDTRACK_TYPES
+from src import utils
 
 # BookHandler
 from src.config import BOOKS_SUBDIR
@@ -285,8 +286,11 @@ class GameHandler(HumbugHandler):
             return OldVersion
 
         # See if the MD5s are the same.
-        # FIXME: hack for now
-        if hdl_version == local_version:
+        local_path = os.path.join(hdl.target_dir, filename)
+        if not os.path.exists(local_path):
+            return LinkMissing
+
+        if hdl.dl.md5 == utils.md5_file(local_path):
             return SameFile
 
         return False
