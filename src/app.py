@@ -1,5 +1,6 @@
 import os.path
 import argparse
+from collections import OrderedDict
 from src.humble_page import HumblePage
 from src.config import ANNEX_LOCATION
 from src.handlers import GameHandler, MovieHandler, BookHandler
@@ -22,9 +23,11 @@ class Humbug(object):
         # List of local files we had in the relevant directories.
         self.encountered_files = {}
         # List of local files we had that were matched.
+        # dir -> set(files)
         self.found_files = {}
         # List of files we don't have already.
-        self.download_queue = []
+        # dir -> [hdl]
+        self.download_queue = OrderedDict()
 
     def go(self):
         git_dir = os.path.join(ANNEX_LOCATION, '.git')
@@ -67,8 +70,9 @@ class Humbug(object):
             #print "  Exists:", target_filename
             self.found_file(target_dir, target_filename)
         else:
-            print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
-            self.download_queue.append(HumbugDownload(handler, item, dl, target_dir, target_filename, unpack))
+            #print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
+            self.download_queue.setdefault(target_dir, []).append(
+                HumbugDownload(handler, item, dl, target_dir, target_filename, unpack))
 
     def resolve_missing(self):
         """See if the queued downloads correspond to extant files.
@@ -83,11 +87,28 @@ class Humbug(object):
             for file in files:
                 self.encountered_files[dir].remove(file)
 
-        for hdl in self.download_queue[:]:
-            # Check if any of the other files in that directory seem to match
-            for filename in self.encountered_files.get(hdl.target_dir, []):
-                result = hdl.handler.does_match(hdl, filename)
+        action_queue = []
 
-                if result:
-                    print result
-                    break
+        for dir in self.download_queue:
+            hdl_list = self.download_queue[dir]
+            # Assume that the handler for the first should be the handler for all of them
+            handler = hdl_list[0].handler
+
+            unknown_files = self.encountered_files.get(dir, [])
+            action_list = handler.resolve_missing(
+                hdl_list, unknown_files)
+
+            for action in action_list:
+                (action_type, hdl, file) = action
+                unknown_files.remove(file)
+                hdl_list.remove(hdl)
+                # execute action
+                action_queue.append(action)
+
+            for hdl in hdl_list:
+                action_queue.append(("Download", hdl, hdl.target_filename))
+
+        for action in action_queue:
+            # Execute action.
+            #print action
+            pass

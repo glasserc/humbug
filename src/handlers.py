@@ -101,11 +101,11 @@ class HumbugHandler(object):
     def should_unpack(self, dl):
         return False
 
-    def does_match(self, hdl, filename):
-        """Callback to check if a local file matches a HumbleDownload.
+    def resolve_missing(self, hdl_list, file_list):
+        """Callback to check if any files match any HumbleDownloads.
 
-        Can return any of the FileMatches classes."""
-        pass
+        Returns a list of (FileMatch, hdl, filename)."""
+        return []
 
 class BookHandler(HumbugHandler):
     def sanity_check(self):
@@ -152,17 +152,26 @@ class GameHandler(HumbugHandler):
 
     def dl_filetype(self, dl):
         words = dl.name.split()
+        if len(words) == 1:
+            # Maybe it's x86_64.deb
+            words = os.path.splitext(words[0])
+            if not words[-1]:
+                # it was just .zip or .sh or something
+                words = [words[0]]
         if words[-1].startswith('.'):
             return words[-1]
+        if words[-1] in ['MP3', 'FLAC']:
+            return words[-1]
 
-    def filename_could_match(self, filename, dl):
+    def filename_could_match(self, filename, filetype):
         basename, ext = os.path.splitext(filename)
         if basename.endswith('.tar'):
             ext = '.tar' + ext
 
-        if ext in ['.deb', '.rpm', '.tar.gz', '.tar.bz2', '.sh', '.bin']:
+        if ext in ['.deb', '.rpm', '.tar.gz', '.tar.bz2', '.sh', '.bin', '.run',
+                   '.exe', '.dmg']:
             # We know this format.
-            return ext == self.dl_filetype(dl)
+            return ext == filetype
 
         # We don't know this format. It might match..?
         return True
@@ -199,12 +208,63 @@ class GameHandler(HumbugHandler):
 
         return parts[0]
 
-    def does_match(self, hdl, filename):
-        print "Checking match:", hdl.target_filename, filename
-        if self.dl_filetype(hdl.dl) and not \
-                self.filename_could_match(filename, hdl.dl):
-            return
+    def resolve_missing(self, hdl_list, file_list):
+        # For each download, find the file with the same filetype.  If
+        # there is none, and there's only one file, maybe that file's
+        # filetype changed, so examine that one.
+        #
+        # If it's clearly a newer version, return OldVersion.
+        #
+        # Otherwise, compare the md5s. If they're the same, return
+        # SameFile.  If not, UserInvestigate.
+        actions = []
+        file_list = file_list[:]
 
+        for hdl in hdl_list:
+            filetype = self.dl_filetype(hdl.dl)
+            if not filetype:
+                if hdl.dl.name in ['Download', 'Download Mobile']:
+                    # Just compare against the (hopefully only) file in the dir
+                    #print hdl.dl.name, hdl.target_filename
+                    pass
+                elif hdl.dl.name in ['Download Flash', 'Flash']:
+                    # Hopefully this is an OS-specific version that
+                    # happens to be implemented using Flash
+                    pass
+                else:
+                    print "This is weird. Can't figure out the filetype for", hdl.dl.name, hdl.target_filename
+                    continue
+
+            target_file = None
+            for filename in file_list:
+                if self.filename_could_match(filename, filetype):
+                    target_file = filename
+                    break
+
+            if not target_file and len(file_list) == 1:
+                target_file = file_list[0]
+
+            if not target_file:
+                # Presumably a new flavor -- .rpm when previously it
+                # was just .deb or something.
+                # Download it as new.
+                continue
+
+            print "Checking match:", hdl.target_filename, target_file
+            action = self.does_match(hdl, target_file)
+            if action:
+                print action
+                file_list.remove(target_file)
+                actions.append((action, hdl, target_file))
+            else:
+                # does_match should probably always return
+                # UserInvestigate instead of this
+                print "No match!"
+
+
+        return actions
+
+    def does_match(self, hdl, filename):
         hdl_version = self.get_version_number(hdl.target_filename)
         local_version = self.get_version_number(filename)
         if hdl_version == local_version:
