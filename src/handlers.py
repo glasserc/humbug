@@ -86,6 +86,12 @@ class HumbugHandler(object):
     def should_unpack(self, dl):
         return False
 
+    def does_match(self, hdl, filename):
+        """Callback to check if a local file matches a HumbleDownload.
+
+        Can return any of the FileMatches classes."""
+        pass
+
 class BookHandler(HumbugHandler):
     def sanity_check(self):
         assert not self.item.has_soundtrack
@@ -128,3 +134,6 @@ class GameHandler(HumbugHandler):
         target_dir = os.path.join(GAMES_SUBDIR, self.title,
                                   type_dir)
         return target_dir
+
+    def does_match(self, hdl, filename):
+        print "Checking match:", hdl.target_filename, filename
