@@ -29,23 +29,6 @@ class HumbugHandler(object):
 
     DISABLE_DOWNLOAD = True
 
-    def get(self, item, dl, target_dir, target_filename=None, unpack=False):
-        """Download from the link contained in `dl` a file to the path
-        in target_dir."""
-        if target_filename == None:
-            target_filename = dl.filename
-        full_path = os.path.join(target_dir, target_filename)
-
-        # Use lexists because this could be a symlink that wasn't
-        # annex-get'd on this machine
-        if os.path.lexists(full_path):
-            #print "  Exists:", target_filename
-            pass
-        else:
-            print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
-            if self.DISABLE_DOWNLOAD:
-                return
-
     def sanity_check(self):
         """Hook to let you make sure that you're handling the right
         kind of object."""
@@ -92,7 +75,7 @@ class HumbugHandler(object):
             filename = self.download_filename(dl)
             unpack = self.should_unpack(dl)
 
-            self.get(item, dl, target_dir, filename, unpack)
+            self.application.enqueue(self, item, dl, target_dir, filename, unpack)
 
     def download_filename(self, dl):
         return dl.filename
@@ -131,6 +114,7 @@ class MovieHandler(HumbugHandler):
                                   dl.filename)
 
     def should_unpack(self, dl):
+        # We keep soundtracks zipped. Movies should be unzipped.
         return not dl.type == 'audio'
 
 class GameHandler(HumbugHandler):
