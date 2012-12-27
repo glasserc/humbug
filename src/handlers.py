@@ -3,10 +3,20 @@ Handlers for different kind of items found in the Humble Bundle.
 """
 
 import os.path
-from src.config import BOOKS_SUBDIR
-from src.config import GAMES_SUBDIR, GAME_TYPE_SUBDIR
-from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
 from src.config import NAME_EXCEPTIONS
+
+# BookHandler
+from src.config import BOOKS_SUBDIR
+
+# GameHandler
+import re
+from distutils import version
+from src.config import GAMES_SUBDIR, GAME_TYPE_SUBDIR
+from src.filematch import SameFile, LinkMissing, OldVersion, UserInvestigate
+from src.versions import Timestamp, DateString, DebianVersion
+
+# MovieHandler
+from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
 
 class HumbugHandler(object):
     def __init__(self, application, item):
@@ -140,5 +150,67 @@ class GameHandler(HumbugHandler):
                                   type_dir)
         return target_dir
 
+    def dl_filetype(self, dl):
+        words = dl.name.split()
+        if words[-1].startswith('.'):
+            return words[-1]
+
+    def filename_could_match(self, filename, dl):
+        basename, ext = os.path.splitext(filename)
+        if basename.endswith('.tar'):
+            ext = '.tar' + ext
+
+        if ext in ['.deb', '.rpm', '.tar.gz', '.tar.bz2', '.sh', '.bin']:
+            # We know this format.
+            return ext == self.dl_filetype(dl)
+
+        # We don't know this format. It might match..?
+        return True
+
+    FILEPART_RE = re.compile('[-_.]')
+    NUMBER_RE = re.compile('(\d+)')
+    def get_version_number(self, filename):
+        """String munging function that gets to figure out if any part
+        of this filename can be treated as a version number"""
+        parts = self.FILEPART_RE.split(filename)
+        current_numbers = []
+        for part in parts:
+            if part in ['amd64', 'i386', 'x86', '32bit', '64bit', '64']:
+                continue
+
+            i_part = None
+            num_found = self.NUMBER_RE.search(part)
+            if num_found:
+                i_part = int(num_found.group(1))
+
+            # If any part looks like a timestamp, return that immediately.
+            if i_part > 1000000000:
+                return Timestamp(i_part)
+
+            # Ditto for dates.
+            if 20100000 < i_part < 20300000:
+                return DateString(i_part)
+
+            if i_part:
+                current_numbers.append(i_part)
+
+        if current_numbers:
+            return DebianVersion(current_numbers)
+
+        return parts[0]
+
     def does_match(self, hdl, filename):
         print "Checking match:", hdl.target_filename, filename
+        if self.dl_filetype(hdl.dl) and not \
+                self.filename_could_match(filename, hdl.dl):
+            return
+
+        hdl_version = self.get_version_number(hdl.target_filename)
+        local_version = self.get_version_number(filename)
+        if hdl_version == local_version:
+            return SameFile
+        elif type(hdl_version) == type(local_version) and \
+                hdl_version > local_version:
+            return OldVersion
+        else:
+            return UserInvestigate
