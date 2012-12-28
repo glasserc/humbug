@@ -1,6 +1,7 @@
 import os.path
 import argparse
 from collections import OrderedDict
+from src import filematch
 from src.humble_page import HumblePage
 from src.config import ANNEX_LOCATION
 from src.handlers import GameHandler, MovieHandler, BookHandler
@@ -13,6 +14,10 @@ class HumbugDownload(object):
         self.target_dir = target_dir
         self.target_filename = target_filename
         self.unpack = unpack
+
+    def __str__(self):
+        return "Download {} to {}/{}".format(self.dl.filename, self.target_dir,
+                                           self.target_filename)
 
 class Humbug(object):
     def __init__(self, args=None):
@@ -49,7 +54,19 @@ class Humbug(object):
 
             handler(self, item).handle()
 
-        self.resolve_missing()
+        wont_do_queue, action_queue = self.resolve_missing()
+        action_queue = self.display_actions(wont_do_queue, action_queue)
+
+        if action_queue == None:
+            print "Aborting by user request."
+            return
+
+        if len(action_queue) == 0:
+            print "Exiting: Nothing to do."
+            return
+
+        for action in action_queue:
+            print "Performing:", action
 
     def found_file(self, target_dir, target_file):
         self.found_files.setdefault(target_dir, set()).add(target_file)
@@ -88,6 +105,8 @@ class Humbug(object):
                 self.encountered_files[dir].remove(file)
 
         action_queue = []
+        # dir -> [actions]
+        wont_do_queue = {}
 
         for dir in self.download_queue:
             hdl_list = self.download_queue[dir]
@@ -97,18 +116,54 @@ class Humbug(object):
             unknown_files = self.encountered_files.get(dir, [])
             action_list = handler.resolve_missing(
                 hdl_list, unknown_files)
-
+            this_dir_actions = []
             for action in action_list:
-                (action_type, hdl, file) = action
-                unknown_files.remove(file)
-                hdl_list.remove(hdl)
+                unknown_files.remove(action.local_filename)
+                hdl_list.remove(action.hdl)
                 # execute action
-                action_queue.append(action)
+                this_dir_actions.append(action)
 
             for hdl in hdl_list:
-                action_queue.append(("Download", hdl, hdl.target_filename))
+                this_dir_actions.append(hdl)
 
-        for action in action_queue:
-            # Execute action.
-            #print action
-            pass
+            if any(isinstance(action, filematch.FileMatchProblem)
+                   for action in this_dir_actions):
+                wont_do_queue[dir] = this_dir_actions
+            else:
+                action_queue.extend(this_dir_actions)
+
+        return (wont_do_queue, action_queue)
+
+    def display_actions(self, wont_do_queue, actions_queue):
+        """
+        Show the user the actions to be performed and get their confirmation.
+
+        Return a list of actions to be performed. These actions can be
+        HumbugDownloads, or SameFile or OldVersion actions.
+        """
+        print "Problems were found with these downloads:"
+        for dir, actions in wont_do_queue.iteritems():
+            # print problems before non-taken actions
+            problems = [action for action in actions
+                        if isinstance(action, filematch.FileMatchProblem)]
+
+            # These should all be FileMatchActions or HumbugDownloads
+            not_problems = [action for action in actions if
+                            action not in problems]
+            print "\n".join("  {!s}".format(problem) for problem in problems)
+
+            if not_problems:
+                print "\n".join("    - {!s} (other problems in this directory)".format(action)
+                                for action in not_problems)
+
+        print
+        print "Will perform these actions:"
+        print "\n".join("  {!s}".format(action) for action in actions_queue)
+
+        print
+        if actions_queue:
+            resp = raw_input("Does this seem right? [y/N] ")
+            if not resp.lower().startswith('y'):
+                return None
+
+        return actions_queue

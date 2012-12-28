@@ -248,7 +248,7 @@ class GameHandler(HumbugHandler):
                 hdl_to_try = hdl_list
 
             for hdl in hdl_to_try:
-                print "Checking match:", hdl.target_filename, target_file
+                #print "Checking match:", hdl.target_filename, target_file
                 action = self.does_match(hdl, target_file)
                 if action:
                     break
@@ -259,10 +259,10 @@ class GameHandler(HumbugHandler):
                 # and return UserInvestigate.
                 action = UserInvestigate
 
-            print action, hdl, target_file
+            #print action, hdl, target_file
             file_list.remove(target_file)
             hdl_list.remove(hdl)
-            actions.append((action, hdl, target_file))
+            actions.append(action(hdl, target_file))
 
         if file_list:
             # FIXME: this should be a warning. It might just be a
