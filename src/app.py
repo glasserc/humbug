@@ -166,4 +166,7 @@ class Humbug(object):
             if not resp.lower().startswith('y'):
                 return None
 
+        # Maybe one day this could be displayed graphically, and the
+        # user could select/unselect actions to perform.
+
         return actions_queue

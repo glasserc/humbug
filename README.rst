@@ -13,3 +13,9 @@ You might be more interested in `humblepie
 <https://github.com/zendeavor/humblepie/blob/master/humblepie>`_ or
 `t4b's HIB script
 <http://t4b.me/posts/downloading-all-your-hib-games/>`_.
+
+Dependencies
+------------
+
+- BeautifulSoup4 (python-bs4)
+- Python 2.7 (OrderedDict)
