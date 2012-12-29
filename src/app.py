@@ -239,7 +239,7 @@ class Humbug(object):
         hdl = oldversion.hdl
         self._download(hdl)
 
-        subprocess.check_call(['git', 'annex', 'drop', '-f', oldversion.local_filename],
+        subprocess.check_call(['git', 'annex', 'drop', '--force', oldversion.local_filename],
                               cwd=hdl.target_dir)
         subprocess.check_call(['git', 'rm', oldversion.local_filename],
                               cwd=hdl.target_dir)
