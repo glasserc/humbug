@@ -1,10 +1,12 @@
 import os.path
 import argparse
+import subprocess
 from collections import OrderedDict
 from src import filematch
 from src.humble_page import HumblePage
 from src.config import ANNEX_LOCATION
 from src.handlers import GameHandler, MovieHandler, BookHandler
+from src.utils import md5_file
 
 class HumbugDownload(object):
     def __init__(self, handler, item, dl, target_dir, target_filename, unpack):
@@ -18,6 +20,10 @@ class HumbugDownload(object):
     def __str__(self):
         return "Download {} to {}/{}".format(self.dl.filename, self.target_dir,
                                            self.target_filename)
+
+    def name_nice(self):
+        return "{} - {}".format(self.item.title,
+                                str(self.dl))
 
 class Humbug(object):
     def __init__(self, args=None):
@@ -35,7 +41,8 @@ class Humbug(object):
         self.download_queue = OrderedDict()
 
     def go(self):
-        git_dir = os.path.join(ANNEX_LOCATION, '.git')
+        os.chdir(ANNEX_LOCATION)
+        git_dir = '.git'
         annex_dir = os.path.join(git_dir, 'annex')
         if not os.path.exists(git_dir) or \
                 not os.path.exists(annex_dir):
@@ -65,8 +72,85 @@ class Humbug(object):
             print "Exiting: Nothing to do."
             return
 
+        self.perform_actions(action_queue)
+
+    def perform_actions(self, action_queue):
+        action_methods = {
+            HumbugDownload: self.perform_download,
+            filematch.SameFile: self.perform_samefile,
+            filematch.OldVersion: self.perform_oldversion,
+            }
+
         for action in action_queue:
-            print "Performing:", action
+            action_methods[type(action)](action)
+
+    def perform_download(self, hdl):
+        self._download(hdl)
+        subprocess.check_call(["git", "commit", "-m",
+                               'Downloading {}'.format(hdl.name_nice)])
+
+    def _download(self, hdl):
+        print "Downloading {}".format(hdl.item.title)
+        if not os.path.exists(hdl.target_dir):
+            os.makedirs(hdl.target_dir)
+
+        # Use hdl.dl.filename here, which is the filename before unpacking.
+        subprocess.check_call(["snarf", hdl.dl.url, hdl.dl.filename],
+                              cwd=hdl.target_dir)
+        assert md5_file(hdl.dl.filename) == hdl.dl.md5
+
+        if hdl.unpack:
+            tmpfilename = subprocess.check_output(['mktemp', '/tmp/aunpack.XXXXXXXXXX'])
+            subprocess.check_call(['aunpack', hdl.dl.filename,
+                                   '--save-outdir={}'.format(tmpfilename)],
+                                  cwd=hdl.target_dir)
+            tmpdir = file(tmpfilename).read().strip()
+            os.unlink(tmpfilename)
+            # tmpdir == "" means everything was unpacked to the current directory
+            if tmpdir:
+                tmpdir = os.path.join(hdl.target_dir, tmpdir)
+                # Try to move stuff out of the directory
+                for filename in os.listdir(tmpdir):
+                    unpacked_file = os.path.join(tmpdir, filename)
+                    target_file = os.path.join(hdl.target_dir, filename)
+                    if not os.path.exists(target_file):
+                        os.rename(unpacked_file, target_file)
+                    elif md5_file(unpacked_file) == md5_file(target_file):
+                        os.unlink(unpacked_file)
+                    else:
+                        print "Couldn't figure out what to do with unpacked file {}".format(unpacked_file)
+
+                try:
+                    os.rmdir(tmpdir)
+                except OSError:
+                    # Guess it wasn't empty. Oh well!
+                    print "Not removing directory {}".format(tmpdir)
+
+        # Use target_filename here, which is the filename we wanted to
+        # get out of the unpacked version.
+        subprocess.check_call(['git', 'annex', 'add', hdl.target_filename],
+                              cwd=hdl.target_dir)
+
+    def perform_samefile(self, samefile):
+        hdl = samefile.hdl
+        subprocess.check_call(['git', 'mv', samefile.local_filename,
+                               hdl.target_filename],
+                              cwd=hdl.target_dir)
+
+        subprocess.check_call(['git', 'commit', '-m',
+                               'Rename {} in accordance with HIB'.format(
+                    hdl.item.title)])
+
+    def perform_oldversion(self, oldversion):
+        hdl = oldversion.hdl
+        self._download(hdl)
+
+        subprocess.check_call(['git', 'annex', 'drop', '-f', oldversion.local_filename],
+                              cwd=hdl.target_dir)
+        subprocess.check_call(['git', 'rm', oldversion.local_filename],
+                              cwd=hdl.target_dir)
+        subprocess.check_call(['git', 'commit', '-m',
+                               'Replacing old version of {}'.format(hdl.name_nice())])
 
     def found_file(self, target_dir, target_file):
         self.found_files.setdefault(target_dir, set()).add(target_file)

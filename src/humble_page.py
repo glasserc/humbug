@@ -2,7 +2,7 @@ import os.path
 import urlparse
 from bs4 import BeautifulSoup
 from src import property_builder as P
-from src.config import SOUNDTRACK_TYPES
+from src.config import SOUNDTRACK_TYPES, VIDEO_TYPES
 
 class HumbleNode(object):
     """Class corresponding a node in the Humble Bundle download page.
@@ -27,6 +27,9 @@ class HumbleDownload(HumbleNode):
 
     modified = property(
         P.attr('data-timestamp', P.find('a', 'dldate', optional=True)))
+
+    url = property(
+        P.attr('data-web', P.find('a')))
 
     @property
     def type(self):
@@ -63,6 +66,17 @@ class HumbleDownload(HumbleNode):
             return cls
 
     @property
+    def type_nice(self):
+        """User-friendlier version of type"""
+        return {'linux': "Linux",
+                'mac': "OSX",
+                'mac10.5': "OSX 10.5",
+                'mac10.6+': "OSX 10.6+",
+                'flash': "Flash",
+                'air': 'Adobe Air',
+                'windows': 'Windows'}.get(self.type, self.type)
+
+    @property
     def filetype(self):
         """The extension or other cue that someone will be able to use
         to recognize the download in a local file.
@@ -80,6 +94,8 @@ class HumbleDownload(HumbleNode):
         if words[-1].startswith('.'):
             return words[-1]
         if words[-1] in SOUNDTRACK_TYPES:
+            return words[-1]
+        if words[-1] in VIDEO_TYPES:
             return words[-1]
 
         if self.name in ['Download', 'Download Mobile']:
@@ -113,6 +129,15 @@ class HumbleDownload(HumbleNode):
     def is_file(self):
         return self.node.find('a')['data-web']. \
             startswith('http://files.humblebundle.com')
+
+    def __str__(self):
+        download_name = self.name
+        if 'Download' in download_name:
+            if self.filetype:
+                download_name = self.filetype
+            else:
+                download_name = self.type_nice
+        return download_name
 
 class HumbleItem(HumbleNode):
     title = property(
