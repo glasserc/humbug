@@ -30,6 +30,8 @@ class Humbug(object):
         parser = argparse.ArgumentParser(description="munge Humble Bundle page into a git annex")
         parser.add_argument('filename', type=str,
                             help="a saved version of the home.html page")
+        parser.add_argument('--include',
+                            help="only do actions matching INCLUDE")
         self.config = parser.parse_args(args)
         # List of local files we had in the relevant directories.
         self.encountered_files = {}
@@ -140,6 +142,13 @@ class Humbug(object):
             if not_problems:
                 print "\n".join("    - {!s} (other problems in this directory)".format(action)
                                 for action in not_problems)
+
+        if self.config.include:
+            include = self.config.include
+            print "Excluding actions that don't match {}".format(include)
+            # FIXME: some kind of actual pattern matching or something
+            actions_queue = [action for action in actions_queue
+                             if include in str(action)]
 
         print
         print "Will perform these actions:"
