@@ -139,7 +139,7 @@ class HumbleDownload(HumbleNode):
     def __str__(self):
         download_name = self.name
         if 'Download' in download_name:
-            if self.filetype:
+            if self.filetype and not self.filetype == '.exe':
                 download_name = self.filetype
             else:
                 download_name = self.type_nice
