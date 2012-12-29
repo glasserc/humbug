@@ -178,7 +178,7 @@ class Humbug(object):
     def perform_download(self, hdl):
         self._download(hdl)
         subprocess.check_call(["git", "commit", "-m",
-                               'Downloading {}'.format(hdl.name_nice)])
+                               'Downloading {}'.format(hdl.name_nice())])
 
     def _download(self, hdl):
         print "Downloading {}".format(hdl.item.title)

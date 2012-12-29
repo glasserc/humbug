@@ -74,7 +74,10 @@ class HumbleDownload(HumbleNode):
                 'mac10.6+': "OSX 10.6+",
                 'flash': "Flash",
                 'air': 'Adobe Air',
-                'windows': 'Windows'}.get(self.type, self.type)
+                'windows': 'Windows',
+                'MP3': 'Soundtrack (MP3)',
+                'FLAC': 'Soundtrack (FLAC)',
+                }.get(self.type, self.type)
 
     @property
     def filetype(self):
