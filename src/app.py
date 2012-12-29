@@ -74,6 +74,88 @@ class Humbug(object):
 
         self.perform_actions(action_queue)
 
+
+    def resolve_missing(self):
+        """See if the queued downloads correspond to extant files.
+
+        A Handler can say that a download matches a file by returning
+        SameFile, suggest that the file might match if the file were
+        "git annex get"'d by returning LinkMissing, or say that the
+        extant file needs to be blown away and replaced by returning
+        OldVersion."""
+        # Remove all the found files from self.encountered_files
+        for dir, files in self.found_files.iteritems():
+            for file in files:
+                self.encountered_files[dir].remove(file)
+
+        action_queue = []
+        # dir -> [actions]
+        wont_do_queue = {}
+
+        for dir in self.download_queue:
+            hdl_list = self.download_queue[dir]
+            # Assume that the handler for the first should be the handler for all of them
+            handler = hdl_list[0].handler
+
+            unknown_files = self.encountered_files.get(dir, [])
+            action_list = handler.resolve_missing(
+                hdl_list, unknown_files)
+            this_dir_actions = []
+            for action in action_list:
+                unknown_files.remove(action.local_filename)
+                hdl_list.remove(action.hdl)
+                # execute action
+                this_dir_actions.append(action)
+
+            for hdl in hdl_list:
+                this_dir_actions.append(hdl)
+
+            if any(isinstance(action, filematch.FileMatchProblem)
+                   for action in this_dir_actions):
+                wont_do_queue[dir] = this_dir_actions
+            else:
+                action_queue.extend(this_dir_actions)
+
+        return (wont_do_queue, action_queue)
+
+
+    def display_actions(self, wont_do_queue, actions_queue):
+        """
+        Show the user the actions to be performed and get their confirmation.
+
+        Return a list of actions to be performed. These actions can be
+        HumbugDownloads, or SameFile or OldVersion actions.
+        """
+        print "Problems were found with these downloads:"
+        for dir, actions in wont_do_queue.iteritems():
+            # print problems before non-taken actions
+            problems = [action for action in actions
+                        if isinstance(action, filematch.FileMatchProblem)]
+
+            # These should all be FileMatchActions or HumbugDownloads
+            not_problems = [action for action in actions if
+                            action not in problems]
+            print "\n".join("  {!s}".format(problem) for problem in problems)
+
+            if not_problems:
+                print "\n".join("    - {!s} (other problems in this directory)".format(action)
+                                for action in not_problems)
+
+        print
+        print "Will perform these actions:"
+        print "\n".join("  {!s}".format(action) for action in actions_queue)
+
+        print
+        if actions_queue:
+            resp = raw_input("Does this seem right? [y/N] ")
+            if not resp.lower().startswith('y'):
+                return None
+
+        # Maybe one day this could be displayed graphically, and the
+        # user could select/unselect actions to perform.
+
+        return actions_queue
+
     def perform_actions(self, action_queue):
         action_methods = {
             HumbugDownload: self.perform_download,
@@ -174,83 +256,3 @@ class Humbug(object):
             #print "  Get:", full_path, dl.type, dl.name, dl.md5, dl.modified
             self.download_queue.setdefault(target_dir, []).append(
                 HumbugDownload(handler, item, dl, target_dir, target_filename, unpack))
-
-    def resolve_missing(self):
-        """See if the queued downloads correspond to extant files.
-
-        A Handler can say that a download matches a file by returning
-        SameFile, suggest that the file might match if the file were
-        "git annex get"'d by returning LinkMissing, or say that the
-        extant file needs to be blown away and replaced by returning
-        OldVersion."""
-        # Remove all the found files from self.encountered_files
-        for dir, files in self.found_files.iteritems():
-            for file in files:
-                self.encountered_files[dir].remove(file)
-
-        action_queue = []
-        # dir -> [actions]
-        wont_do_queue = {}
-
-        for dir in self.download_queue:
-            hdl_list = self.download_queue[dir]
-            # Assume that the handler for the first should be the handler for all of them
-            handler = hdl_list[0].handler
-
-            unknown_files = self.encountered_files.get(dir, [])
-            action_list = handler.resolve_missing(
-                hdl_list, unknown_files)
-            this_dir_actions = []
-            for action in action_list:
-                unknown_files.remove(action.local_filename)
-                hdl_list.remove(action.hdl)
-                # execute action
-                this_dir_actions.append(action)
-
-            for hdl in hdl_list:
-                this_dir_actions.append(hdl)
-
-            if any(isinstance(action, filematch.FileMatchProblem)
-                   for action in this_dir_actions):
-                wont_do_queue[dir] = this_dir_actions
-            else:
-                action_queue.extend(this_dir_actions)
-
-        return (wont_do_queue, action_queue)
-
-    def display_actions(self, wont_do_queue, actions_queue):
-        """
-        Show the user the actions to be performed and get their confirmation.
-
-        Return a list of actions to be performed. These actions can be
-        HumbugDownloads, or SameFile or OldVersion actions.
-        """
-        print "Problems were found with these downloads:"
-        for dir, actions in wont_do_queue.iteritems():
-            # print problems before non-taken actions
-            problems = [action for action in actions
-                        if isinstance(action, filematch.FileMatchProblem)]
-
-            # These should all be FileMatchActions or HumbugDownloads
-            not_problems = [action for action in actions if
-                            action not in problems]
-            print "\n".join("  {!s}".format(problem) for problem in problems)
-
-            if not_problems:
-                print "\n".join("    - {!s} (other problems in this directory)".format(action)
-                                for action in not_problems)
-
-        print
-        print "Will perform these actions:"
-        print "\n".join("  {!s}".format(action) for action in actions_queue)
-
-        print
-        if actions_queue:
-            resp = raw_input("Does this seem right? [y/N] ")
-            if not resp.lower().startswith('y'):
-                return None
-
-        # Maybe one day this could be displayed graphically, and the
-        # user could select/unselect actions to perform.
-
-        return actions_queue
