@@ -78,6 +78,7 @@ class HumbleDownload(HumbleNode):
                 'flash': "Flash",
                 'air': 'Adobe Air',
                 'windows': 'Windows',
+                'audio': 'Soundtrack',
                 }.get(self.type, self.type)
 
     @property
@@ -143,7 +144,7 @@ class HumbleDownload(HumbleNode):
                 download_name = self.filetype
             else:
                 download_name = self.type_nice
-        if self.type == 'audio':
+        if download_name in SOUNDTRACK_TYPES:
             download_name = "Soundtrack ({})".format(download_name)
         if download_name in VIDEO_TYPES:
             download_name = "{} format".format(download_name)

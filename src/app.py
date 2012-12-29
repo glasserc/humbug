@@ -181,10 +181,10 @@ class Humbug(object):
     def perform_download(self, hdl):
         self._download(hdl)
         subprocess.check_call(["git", "commit", hdl.target_dir, "-m",
-                               'Downloading {}'.format(hdl.name_nice())])
+                               'Download {}'.format(hdl.name_nice())])
 
     def _download(self, hdl):
-        print "Downloading {}".format(hdl.item.title)
+        print str(hdl)
         if not os.path.exists(hdl.target_dir):
             os.makedirs(hdl.target_dir)
 
@@ -244,7 +244,7 @@ class Humbug(object):
         subprocess.check_call(['git', 'rm', oldversion.local_filename],
                               cwd=hdl.target_dir)
         subprocess.check_call(['git', 'commit', hdl.target_dir, '-m',
-                               'Replacing old version of {}'.format(hdl.name_nice())])
+                               'Replace old version of {}'.format(hdl.name_nice())])
 
     def found_file(self, target_dir, target_file):
         self.found_files.setdefault(target_dir, set()).add(target_file)
