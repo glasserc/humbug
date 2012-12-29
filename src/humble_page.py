@@ -31,6 +31,9 @@ class HumbleDownload(HumbleNode):
     url = property(
         P.attr('data-web', P.find('a')))
 
+    filesize = property(
+        P.text(P.find('span', 'mbs')))
+
     @property
     def type(self):
         """Return the OS that the binary corresponds to.
