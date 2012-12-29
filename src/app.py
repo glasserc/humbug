@@ -188,7 +188,7 @@ class Humbug(object):
         # Use hdl.dl.filename here, which is the filename before unpacking.
         subprocess.check_call(["snarf", hdl.dl.url, hdl.dl.filename],
                               cwd=hdl.target_dir)
-        assert md5_file(hdl.dl.filename) == hdl.dl.md5
+        assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
 
         if hdl.unpack:
             tmpfilename = subprocess.check_output(['mktemp', '/tmp/aunpack.XXXXXXXXXX'])
