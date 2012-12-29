@@ -145,6 +145,7 @@ class Humbug(object):
 
         if self.config.include:
             include = self.config.include
+            print
             print "Excluding actions that don't match {}".format(include)
             # FIXME: some kind of actual pattern matching or something
             actions_queue = [action for action in actions_queue
