@@ -24,8 +24,9 @@ class OldVersion(FileMatchAction):
 
     Blow the file away using git annex drop and git rm before downloading."""
     def __str__(self):
-        return "Action: Delete {} and replace with version {}".format(
-            self.local_filename, self.hdl.target_filename)
+        return "Action: Delete {} and replace with version {} ({})".format(
+            self.local_filename, self.hdl.target_filename,
+            self.hdl.dl.filesize)
 
 class FileMatchProblem(FileMatch):
     """This represents FileMatches that indicate a problem with data on-disk"""
