@@ -52,6 +52,8 @@ NAME_EXCEPTIONS = {
 UNPACKED_NAMES = {
     'Kooky/Highest Quality MP4': 'Kooky [Top quality, 720p].mp4',
     'Kooky/Recommended MP4': 'Kooky [Normal quality, 720p].mp4',
+    'Indie Game - The Movie/Download 720p': 'indiegamethemovie_720p.mp4',
+    'Indie Game - The Movie/Download 1080p': 'indiegamethemovie_1080p.mp4',
 }
 
 SOUNDTRACK_TYPES = ['MP3', 'FLAC', 'WAV', 'OGG']
