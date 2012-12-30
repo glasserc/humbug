@@ -226,6 +226,8 @@ class Humbug(object):
                     # Guess it wasn't empty. Oh well!
                     print "Not removing directory {}".format(tmpdir)
 
+            os.unlink(os.path.join(hdl.target_dir, hdl.dl.filename))
+
         # Use target_filename here, which is the filename we wanted to
         # get out of the unpacked version.
         subprocess.check_call(['git', 'annex', 'add', hdl.target_filename],
