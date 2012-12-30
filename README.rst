@@ -220,3 +220,6 @@ a bunch of games that I downloaded and maintained in a very ad-hoc
 manner. As a result it probably won't work for *your* Annex or an
 empty annex. Patches welcome, particularly to add a configuration file
 interface in an XDG-compatible location!
+
+Humbug's support for unpacking zips is pretty fiddly. Expect it to
+just crash. You'll get to clean it up by hand.
