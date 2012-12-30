@@ -195,7 +195,7 @@ class Humbug(object):
         # already. For some reason passing -n "fixes" it, but means
         # we'd redownload everything. This isn't really a problem
         # since incomplete files would already confuse us.
-        subprocess.check_call(["snarf", hdl.dl.url, hdl.dl.filename, '-n'],
+        subprocess.check_call(["snarf", '-n', hdl.dl.url, hdl.dl.filename],
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
 
