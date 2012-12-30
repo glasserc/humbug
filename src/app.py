@@ -189,7 +189,13 @@ class Humbug(object):
             os.makedirs(hdl.target_dir)
 
         # Use hdl.dl.filename here, which is the filename before unpacking.
-        subprocess.check_call(["snarf", hdl.dl.url, hdl.dl.filename],
+        #
+        # FIXME: For some reason snarf isn't downloading the Indie
+        # Game: The Movie because it thinks the empty file is complete
+        # already. For some reason passing -n "fixes" it, but means
+        # we'd redownload everything. This isn't really a problem
+        # since incomplete files would already confuse us.
+        subprocess.check_call(["snarf", hdl.dl.url, hdl.dl.filename, '-n'],
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
 
