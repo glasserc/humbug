@@ -201,6 +201,7 @@ class Humbug(object):
 
         if hdl.unpack:
             tmpfilename = subprocess.check_output(['mktemp', '/tmp/aunpack.XXXXXXXXXX'])
+            tmpfilename = tmpfilename.strip()
             subprocess.check_call(['aunpack', hdl.dl.filename,
                                    '--save-outdir={}'.format(tmpfilename)],
                                   cwd=hdl.target_dir)
