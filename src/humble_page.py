@@ -123,6 +123,9 @@ class HumbleDownload(HumbleNode):
         if '64-bit' in self.name:
             return '64-bit'
 
+        if 'x86_64' in self.name:
+            return '64-bit'
+
         return '32-bit'
 
     @property
