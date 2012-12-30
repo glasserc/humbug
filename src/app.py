@@ -195,6 +195,10 @@ class Humbug(object):
         # already. For some reason passing -n "fixes" it, but means
         # we'd redownload everything. This isn't really a problem
         # since incomplete files would already confuse us.
+        #
+        # For some large files, snarf gets confused about its
+        # size. Among other things, this breaks the progress bar. Add
+        # -q here if you experience infinitely long '#' progress bars.
         subprocess.check_call(["snarf", '-n', hdl.dl.url, hdl.dl.filename],
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
