@@ -176,8 +176,13 @@ class GameHandler(HumbugHandler):
     NUMBER_RE = re.compile('(\d+)')
     def get_version_number(self, filename):
         """String munging function that gets to figure out if any part
-        of this filename can be treated as a version number"""
+        of this filename can be treated as a version number.
+
+        Returns a list of potential version numbers, sorted in order
+        of canonicality"""
         parts = self.FILEPART_RE.split(filename)
+        current_versions = []
+        # Will be turned into a DebianVersion at the end
         current_numbers = []
         for part in parts:
             if part in ['amd64', 'i386', 'x86', '32bit', '64bit', '64']:
@@ -190,19 +195,22 @@ class GameHandler(HumbugHandler):
 
             # If any part looks like a timestamp, return that immediately.
             if i_part > 1000000000:
-                return Timestamp(i_part)
+                current_versions.append(Timestamp(i_part))
+                continue
 
             # Ditto for dates.
             if 20100000 < i_part < 20300000:
-                return DateString(i_part)
+                current_versions.append(DateString(i_part))
+                continue
 
             if i_part:
                 current_numbers.append(i_part)
 
         if current_numbers:
-            return DebianVersion(current_numbers)
+            current_versions.append(DebianVersion(current_numbers))
 
-        return parts[0]
+        current_versions.append(parts[0])
+        return current_versions
 
     def find_closest_file(self, hdl, file_list):
         filetype = hdl.dl.filetype
@@ -279,11 +287,12 @@ class GameHandler(HumbugHandler):
         return OldVersion.  Otherwise, compare the md5s. If they're
         the same, return SameFile.  Otherwise, return False. Maybe the
         caller knows something we don't."""
-        hdl_version = self.get_version_number(hdl.target_filename)
-        local_version = self.get_version_number(filename)
-        if type(hdl_version) == type(local_version) and \
-                hdl_version > local_version:
-            return OldVersion
+        hdl_version = self.get_version_number(hdl.target_filename)[0]
+        # Try to find the same type of version number as in the remote version
+        for local_version in self.get_version_number(filename):
+            if type(hdl_version) == type(local_version) and \
+                    hdl_version > local_version:
+                return OldVersion
 
         # See if the MD5s are the same.
         local_path = os.path.join(hdl.target_dir, filename)
