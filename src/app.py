@@ -198,7 +198,7 @@ class Humbug(object):
         #
         # For some large files, snarf gets confused about its
         # size. Among other things, this breaks the progress bar. Add
-        # -q here if you experience infinitely long '#' progress bars.
+        # -q here if you experience infinitely long '#' or ' ' progress bars.
         subprocess.check_call(["snarf", '-n', hdl.dl.url, hdl.dl.filename],
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
