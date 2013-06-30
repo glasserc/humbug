@@ -19,20 +19,20 @@ class HumbleDownload(HumbleNode):
     means a link to an affiliate website or a Stream link."""
 
     name = property(
-        P.text(P.find('span', 'label')))
+        P.text(P.find('span', {'class': 'label'})))
 
     # Absent on a couple of elements where the link goes to a different website
     md5 = property(
-        P.attr('href', P.find('a', 'dlmd5'), strip_hash=True))
+        P.attr('href', P.find('a', {'class': 'dlmd5'}), strip_hash=True))
 
     modified = property(
-        P.attr('data-timestamp', P.find('a', 'dldate', optional=True)))
+        P.attr('data-timestamp', P.find('a', {'class': 'dldate'}, optional=True)))
 
     url = property(
         P.attr('data-web', P.find('a')))
 
     filesize = property(
-        P.text(P.find('span', 'mbs')))
+        P.text(P.find('span', {'class': 'mbs'})))
 
     @property
     def type(self):
@@ -155,25 +155,25 @@ class HumbleDownload(HumbleNode):
 
 class HumbleItem(HumbleNode):
     title = property(
-        P.text(P.find('div', 'title')))
+        P.text(P.find('div', {'class': 'title'})))
     subtitle = property(
-        P.text(P.find('div', 'subtitle')))
+        P.text(P.find('div', {'class': 'subtitle'})))
     is_book = property(
-        P.exists(P.text(P.find('div', 'downloads ebook'))))
+        P.exists(P.text(P.find('div', {'class': 'downloads ebook'}))))
     has_soundtrack = property(
-        P.exists(P.text(P.find('div', 'downloads audio'))))
+        P.exists(P.text(P.find('div', {'class': 'downloads audio'}))))
 
     def downloads(self):
         return map(HumbleDownload,
-                   self.node.find_all('div', 'download'))
+                   self.node.find_all('div', {'class': 'download'}))
 
 class HumblePage(object):
     def __init__(self, config):
-        self.tree = BeautifulSoup(file(config.filename))
+        self.tree = BeautifulSoup(file(config.filename), 'html5lib')
 
     @property
     def title(self):
         return self.tree.title.text
 
     def iteritems(self):
-        return map(HumbleItem, self.tree.find_all('div', 'row'))
+        return map(HumbleItem, self.tree.find_all('div', {'class': 'row'}))
