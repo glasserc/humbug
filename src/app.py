@@ -18,10 +18,10 @@ class HumbugDownload(object):
         self.unpack = unpack
 
     def __str__(self):
-        return "Download {} ({}) to {}/{}".format(self.dl.filename,
+        return "Download {} ({}) to {}/{}".format(self.dl.filename.encode('utf-8'),
                                                   self.dl.filesize,
-                                                  self.target_dir,
-                                                  self.target_filename)
+                                                  self.target_dir.encode('utf-8'),
+                                                  self.target_filename.encode('utf-8'))
 
     def name_nice(self):
         return "{} - {}".format(self.item.title,
