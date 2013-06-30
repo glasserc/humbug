@@ -19,20 +19,20 @@ class HumbleDownload(HumbleNode):
     means a link to an affiliate website or a Stream link."""
 
     name = property(
-        P.text(P.find('span', {'class': 'label'})))
+        P.text(P.find('span', class_='label')))
 
     # Absent on a couple of elements where the link goes to a different website
     md5 = property(
-        P.attr('href', P.find('a', {'class': 'dlmd5'}), strip_hash=True))
+        P.attr('href', P.find('a', class_='dlmd5'), strip_hash=True))
 
     modified = property(
-        P.attr('data-timestamp', P.find('a', {'class': 'dldate'}, optional=True)))
+        P.attr('data-timestamp', P.find('a', class_='dldate', optional=True)))
 
     url = property(
         P.attr('data-web', P.find('a')))
 
     filesize = property(
-        P.text(P.find('span', {'class': 'mbs'})))
+        P.text(P.find('span', class_='mbs')))
 
     @property
     def type(self):
@@ -155,17 +155,17 @@ class HumbleDownload(HumbleNode):
 
 class HumbleItem(HumbleNode):
     title = property(
-        P.text(P.find('div', {'class': 'title'})))
+        P.text(P.find('div', class_='title')))
     subtitle = property(
-        P.text(P.find('div', {'class': 'subtitle'})))
+        P.text(P.find('div', class_='subtitle')))
     is_book = property(
-        P.exists(P.text(P.find('div', {'class': 'downloads ebook'}))))
+        P.exists(P.text(P.find('div', class_='downloads ebook'))))
     has_soundtrack = property(
-        P.exists(P.text(P.find('div', {'class': 'downloads audio'}))))
+        P.exists(P.text(P.find('div', class_='downloads audio'))))
 
     def downloads(self):
         return map(HumbleDownload,
-                   self.node.find_all('div', {'class': 'download'}))
+                   self.node.find_all('div', class_='download'))
 
 class HumblePage(object):
     def __init__(self, config):
@@ -176,4 +176,4 @@ class HumblePage(object):
         return self.tree.title.text
 
     def iteritems(self):
-        return map(HumbleItem, self.tree.find_all('div', {'class': 'row'}))
+        return map(HumbleItem, self.tree.find_all('div', class_='row'))
