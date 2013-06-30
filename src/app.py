@@ -23,6 +23,13 @@ class HumbugDownload(object):
                                                   self.target_dir.encode('utf-8'),
                                                   self.target_filename.encode('utf-8'))
 
+    def __eq__(self, rhs):
+        if not isinstance(rhs, HumbugDownload):
+            return False
+        return self.target_dir == rhs.target_dir \
+            and self.target_filename == rhs.target_filename
+
+
     def name_nice(self):
         return "{} - {}".format(self.item.title,
                                 str(self.dl))
@@ -112,7 +119,12 @@ class Humbug(object):
                 this_dir_actions.append(action)
 
             for hdl in hdl_list:
-                this_dir_actions.append(hdl)
+                # Sometimes we have two different items with the same
+                # download -- in particular, several games have
+                # Android items as well as cross-platform items (with
+                # Mac, Win, Linux downloads).
+                if hdl not in this_dir_actions:
+                    this_dir_actions.append(hdl)
 
             if any(isinstance(action, filematch.FileMatchProblem)
                    for action in this_dir_actions):
