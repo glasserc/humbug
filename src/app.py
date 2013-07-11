@@ -31,8 +31,8 @@ class HumbugDownload(object):
 
 
     def name_nice(self):
-        return "{} - {}".format(self.item.title,
-                                str(self.dl))
+        return "{} - {}".format(self.item.title.encode('utf-8'),
+                                unicode(self.dl).encode('utf-8'))
 
 class Humbug(object):
     def __init__(self, args=None):
