@@ -14,7 +14,7 @@ import re
 from distutils import version
 from src.config import GAMES_SUBDIR, GAME_TYPE_SUBDIR
 from src.filematch import SameFile, LinkMissing, OldVersion, UserInvestigate
-from src.versions import Timestamp, DateString, DebianVersion
+from src.versions import Timestamp, DateString, BackwardsDateString, DebianVersion
 
 # MovieHandler
 from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
@@ -202,6 +202,12 @@ class GameHandler(HumbugHandler):
             if 20100000 < i_part < 20300000:
                 current_versions.append(DateString(i_part))
                 continue
+
+
+            if  1012010 < i_part < 12312099:
+                i_part_year = i_part % 10000
+                if i_part_year // 100 == 20:
+                    current_versions.append(BackwardsDateString(i_part))
 
             if i_part:
                 current_numbers.append(i_part)
