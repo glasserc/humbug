@@ -201,17 +201,7 @@ class Humbug(object):
             os.makedirs(hdl.target_dir)
 
         # Use hdl.dl.filename here, which is the filename before unpacking.
-        #
-        # FIXME: For some reason snarf isn't downloading the Indie
-        # Game: The Movie because it thinks the empty file is complete
-        # already. For some reason passing -n "fixes" it, but means
-        # we'd redownload everything. This isn't really a problem
-        # since incomplete files would already confuse us.
-        #
-        # For some large files, snarf gets confused about its
-        # size. Among other things, this breaks the progress bar. Add
-        # -q here if you experience infinitely long '#' or ' ' progress bars.
-        subprocess.check_call(["snarf", '-n', hdl.dl.url, hdl.dl.filename],
+        subprocess.check_call(["curl", hdl.dl.url, '-o', hdl.dl.filename],
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
 

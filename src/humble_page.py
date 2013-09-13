@@ -137,8 +137,7 @@ class HumbleDownload(HumbleNode):
 
     @property
     def is_file(self):
-        return self.node.find('a')['data-web']. \
-            startswith('http://files.humblebundle.com')
+        return '.hwcdn.net/' in self.node.find('a')['data-web']
 
     def __str__(self):
         download_name = self.name
@@ -169,7 +168,8 @@ class HumbleItem(HumbleNode):
 
 class HumblePage(object):
     def __init__(self, config):
-        self.tree = BeautifulSoup(file(config.filename), 'html5lib')
+        self.tree = BeautifulSoup(file(config.filename).read().decode('utf-8'),
+                                  'html5lib')
 
     @property
     def title(self):
