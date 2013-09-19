@@ -9,6 +9,7 @@ ANNEX_LOCATION = './'
 BOOKS_SUBDIR = 'Books/Humble Bundle/'
 GAMES_SUBDIR = 'Games/'
 MOVIES_SUBDIR = 'Videos/Movies/'
+ALBUMS_SUBDIR = 'Music/'
 
 # Games are stored in
 # {ANNEX_LOCATION}/{GAMES_SUBDIR}/{game.title}/{TYPE_SUBDIR}/{filename}

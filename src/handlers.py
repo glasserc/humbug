@@ -19,6 +19,9 @@ from src.versions import Timestamp, DateString, BackwardsDateString, DebianVersi
 # MovieHandler
 from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
 
+# AlbumHandler
+from src.config import ALBUMS_SUBDIR
+
 class HumbugHandler(object):
     def __init__(self, application, item):
         self.application = application
@@ -159,6 +162,15 @@ class MovieHandler(HumbugHandler):
     def should_unpack(self, dl):
         # We keep soundtracks zipped. Movies should be unzipped.
         return not dl.type == 'audio'
+
+class AlbumHandler(HumbugHandler):
+    def download_path(self, dl):
+        return os.path.join(ALBUMS_SUBDIR, self.title)
+
+    def should_unpack(self, dl):
+        # We can't really unpack albums, because the version is in the
+        # zip filename.
+        return False
 
 class GameHandler(HumbugHandler):
     def sanity_check(self):

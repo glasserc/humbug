@@ -161,6 +161,13 @@ class HumbleItem(HumbleNode):
         P.exists(P.text(P.find('div', class_='downloads ebook'))))
     has_soundtrack = property(
         P.exists(P.text(P.find('div', class_='downloads audio'))))
+    is_comedy = property(
+        P.exists(P.text(P.find('div', class_='downloads comedy'))))
+
+    @property
+    def has_game(self):
+        return any(self.node.select('div.downloads.'+type)[0].text.strip()
+                   for type in ['windows', 'android', 'linux', 'mac'])
 
     def downloads(self):
         return map(HumbleDownload,

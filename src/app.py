@@ -5,7 +5,7 @@ from collections import OrderedDict
 from src import filematch
 from src.humble_page import HumblePage
 from src.config import ANNEX_LOCATION
-from src.handlers import GameHandler, MovieHandler, BookHandler
+from src.handlers import GameHandler, MovieHandler, BookHandler, AlbumHandler
 from src.utils import md5_file
 
 class HumbugDownload(object):
@@ -67,6 +67,12 @@ class Humbug(object):
                 handler = BookHandler
             elif item.title == 'Kooky' or item.title.startswith('Indie Game'):
                 handler = MovieHandler
+            elif item.is_comedy:
+                handler = MovieHandler
+            elif item.has_soundtrack and not item.has_game:
+                # FIXME: figure out how to break these into Artist/Album
+                continue
+                handler = AlbumHandler
             else:
                 handler = GameHandler
 
@@ -205,7 +211,9 @@ class Humbug(object):
                               cwd=hdl.target_dir)
         assert md5_file(os.path.join(hdl.target_dir, hdl.dl.filename)) == hdl.dl.md5
 
+        annexable_files = [hdl.dl.filename]
         if hdl.unpack:
+            annexable_files = []
             tmpfilename = subprocess.check_output(['mktemp', '/tmp/aunpack.XXXXXXXXXX'])
             tmpfilename = tmpfilename.strip()
             subprocess.check_call(['aunpack', hdl.dl.filename,
@@ -222,6 +230,7 @@ class Humbug(object):
                     target_file = os.path.join(hdl.target_dir, filename)
                     if not os.path.exists(target_file):
                         os.rename(unpacked_file, target_file)
+                        annexable_files.append(target_file)
                     elif md5_file(unpacked_file) == md5_file(target_file):
                         os.unlink(unpacked_file)
                     else:
@@ -237,7 +246,7 @@ class Humbug(object):
 
         # Use target_filename here, which is the filename we wanted to
         # get out of the unpacked version.
-        subprocess.check_call(['git', 'annex', 'add', hdl.target_filename],
+        subprocess.check_call(['git', 'annex', 'add'] + annexable_files,
                               cwd=hdl.target_dir)
 
     def perform_samefile(self, samefile):
