@@ -19,6 +19,9 @@ class SameFile(FileMatchAction):
         return "Action: Rename {} to {}".format(
             self.local_filename, self.hdl.target_filename)
 
+class UnpackedFile(FileMatchAction):
+    """Represents that the local file is the unpacked version of the download."""
+
 class OldVersion(FileMatchAction):
     """Represents that the local file matches an old version of the download.
 

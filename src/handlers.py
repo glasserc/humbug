@@ -18,6 +18,7 @@ from src.versions import Timestamp, DateString, BackwardsDateString, DebianVersi
 
 # MovieHandler
 from src.config import MOVIES_SUBDIR, UNPACKED_NAMES, GAME_TYPE_SUBDIR
+from src.filematch import UnpackedFile
 
 # AlbumHandler
 from src.config import ALBUMS_SUBDIR
@@ -131,6 +132,79 @@ class HumbugHandler(object):
         # We don't know this format. It might match..?
         return True
 
+    def find_closest_file(self, hdl, file_list):
+        filetype = hdl.dl.filetype
+        for filename in file_list:
+            if self.filename_could_match(filename, filetype):
+                return filename
+
+
+    def resolve_missing_by_filetype(self, hdl_list, file_list):
+        """A sample implementation of resolve_missing.
+
+        You can use this directly if you want to, but be sure to
+        implement does_match."""
+        # For each download, if it has a filetype, and there is a file
+        # in the directory that clearly matches that filetype, try to
+        # match the two.
+        #
+        # If there is only one file in the directory and it doesn't
+        # have a filetype, try to match it against all the
+        # downloads. If it doesn't match any of them, return
+        # UserInvestigate.
+        #
+        # If the download doesn't have any filetype and there is only
+        # one download and only one file, try to match those two.
+        actions = []
+        file_list = file_list[:]
+        hdl_list = hdl_list[:]
+
+        while file_list and hdl_list:
+            # Each time through the loop, we remove an element from
+            # hdl_list.  We may also remove an element from file_list
+            # if it seemed like the hdl matched it best.
+            hdl = hdl_list[0]
+            target_file = self.find_closest_file(hdl, file_list)
+            if not target_file and len(file_list) != 1:
+                # Presumably a new flavor -- .rpm when previously it
+                # was just .deb or something.
+                # Download it as new.
+                hdl_list.pop(0)
+                continue
+
+            if target_file:
+                # We're pretty sure this download corresponds to this file.
+                hdl_to_try = [hdl]
+            else:  # len(file_list) == 1
+                # Otherwise, we're gonna have to try all the downloads.
+                target_file = file_list[0]
+                hdl_to_try = hdl_list
+
+            for hdl in hdl_to_try:
+                #print "Checking match:", hdl.target_filename, target_file
+                action = self.does_match(hdl, target_file)
+                if action:
+                    break
+
+            if not action:
+                # We fell out of the loop and the file didn't match
+                # any hdl.  Let's pick an arbitrary hdl (the last one)
+                # and return UserInvestigate.
+                action = UserInvestigate
+
+            #print action, hdl, target_file
+            file_list.remove(target_file)
+            hdl_list.remove(hdl)
+            actions.append(action(hdl, target_file))
+
+        if file_list:
+            # FIXME: this should be a warning. It might just be a
+            # download that HIB doesn't offer any more, or it could be
+            # a problem with humbug.
+            print "Leftover files:", file_list
+
+        return actions
+
 
 class BookHandler(HumbugHandler):
     def sanity_check(self):
@@ -159,9 +233,21 @@ class MovieHandler(HumbugHandler):
         return UNPACKED_NAMES.get('{}/{}'.format(self.title, dl.name),
                                   dl.filename)
 
+    def resolve_missing(self, *args, **kwargs):
+        return self.resolve_missing_by_filetype(*args, **kwargs)
+
     def should_unpack(self, dl):
         # We keep soundtracks zipped. Movies should be unzipped.
-        return not dl.type == 'audio'
+        return not dl.type == 'audio' and dl.filetype not in ['FLAC', 'MP3']
+
+    def does_match(self, hdl, filename):
+        """Try to match two files up.
+
+        If it's clearly a newer version based on version numbers,
+        return OldVersion.  Otherwise, compare the md5s. If they're
+        the same, return SameFile.  Otherwise, return False. Maybe the
+        caller knows something we don't."""
+        return UnpackedFile
 
 class AlbumHandler(HumbugHandler):
     def download_path(self, dl):
@@ -230,73 +316,8 @@ class GameHandler(HumbugHandler):
         current_versions.append(parts[0])
         return current_versions
 
-    def find_closest_file(self, hdl, file_list):
-        filetype = hdl.dl.filetype
-        for filename in file_list:
-            if self.filename_could_match(filename, filetype):
-                return filename
-
-    def resolve_missing(self, hdl_list, file_list):
-        # For each download, if it has a filetype, and there is a file
-        # in the directory that clearly matches that filetype, try to
-        # match the two.
-        #
-        # If there is only one file in the directory and it doesn't
-        # have a filetype, try to match it against all the
-        # downloads. If it doesn't match any of them, return
-        # UserInvestigate.
-        #
-        # If the download doesn't have any filetype and there is only
-        # one download and only one file, try to match those two.
-        actions = []
-        file_list = file_list[:]
-        hdl_list = hdl_list[:]
-
-        while file_list and hdl_list:
-            # Each time through the loop, we remove an element from
-            # hdl_list.  We may also remove an element from file_list
-            # if it seemed like the hdl matched it best.
-            hdl = hdl_list[0]
-            target_file = self.find_closest_file(hdl, file_list)
-            if not target_file and len(file_list) != 1:
-                # Presumably a new flavor -- .rpm when previously it
-                # was just .deb or something.
-                # Download it as new.
-                hdl_list.pop(0)
-                continue
-
-            if target_file:
-                # We're pretty sure this download corresponds to this file.
-                hdl_to_try = [hdl]
-            else:  # len(file_list) == 1
-                # Otherwise, we're gonna have to try all the downloads.
-                target_file = file_list[0]
-                hdl_to_try = hdl_list
-
-            for hdl in hdl_to_try:
-                #print "Checking match:", hdl.target_filename, target_file
-                action = self.does_match(hdl, target_file)
-                if action:
-                    break
-
-            if not action:
-                # We fell out of the loop and the file didn't match
-                # any hdl.  Let's pick an arbitrary hdl (the last one)
-                # and return UserInvestigate.
-                action = UserInvestigate
-
-            #print action, hdl, target_file
-            file_list.remove(target_file)
-            hdl_list.remove(hdl)
-            actions.append(action(hdl, target_file))
-
-        if file_list:
-            # FIXME: this should be a warning. It might just be a
-            # download that HIB doesn't offer any more, or it could be
-            # a problem with humbug.
-            print "Leftover files:", file_list
-
-        return actions
+    def resolve_missing(self, *args, **kwargs):
+        return self.resolve_missing_by_filetype(*args, **kwargs)
 
     def does_match(self, hdl, filename):
         """Try to match two files up.

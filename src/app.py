@@ -111,6 +111,7 @@ class Humbug(object):
 
         for dir in self.download_queue:
             hdl_list = self.download_queue[dir]
+
             # Assume that the handler for the first should be the handler for all of them
             handler = hdl_list[0].handler
 
@@ -121,8 +122,10 @@ class Humbug(object):
             for action in action_list:
                 unknown_files.remove(action.local_filename)
                 hdl_list.remove(action.hdl)
-                # execute action
-                this_dir_actions.append(action)
+                # execute action, unless it's an UnpackedFile, which
+                # is basically a found_file
+                if not isinstance(action, filematch.UnpackedFile):
+                    this_dir_actions.append(action)
 
             for hdl in hdl_list:
                 # Sometimes we have two different items with the same
