@@ -65,7 +65,7 @@ class Humbug(object):
         page = HumblePage(self.config)
         print page.title
         for item in page.iteritems():
-            if item.is_book:
+            if item.has_book and not item.has_game:
                 handler = BookHandler
             elif item.title == 'Kooky' or item.title.startswith('Indie Game'):
                 handler = MovieHandler

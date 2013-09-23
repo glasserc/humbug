@@ -259,9 +259,6 @@ class AlbumHandler(HumbugHandler):
         return False
 
 class GameHandler(HumbugHandler):
-    def sanity_check(self):
-        assert not self.item.is_book
-
     def download_path(self, dl):
         type_dir = GAME_TYPE_SUBDIR[dl.type]
         if isinstance(type_dir, dict):

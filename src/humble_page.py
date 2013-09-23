@@ -157,7 +157,7 @@ class HumbleItem(HumbleNode):
         P.text(P.find('div', class_='title')))
     subtitle = property(
         P.text(P.find('div', class_='subtitle')))
-    is_book = property(
+    has_book = property(
         P.exists(P.text(P.find('div', class_='downloads ebook'))))
     has_soundtrack = property(
         P.exists(P.text(P.find('div', class_='downloads audio'))))

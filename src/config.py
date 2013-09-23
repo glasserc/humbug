@@ -28,6 +28,7 @@ GAME_TYPE_SUBDIR = {
     'air': 'Air',
     'flash': 'Flash',
     'audio': 'Soundtrack',
+    'ebook': 'Extras',
 }
 
 # Modifications to names given in the Humble Bundle, for a cleaner annex.
