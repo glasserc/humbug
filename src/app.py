@@ -41,6 +41,8 @@ class Humbug(object):
                             help="a saved version of the home.html page")
         parser.add_argument('--include',
                             help="only do actions matching INCLUDE")
+        parser.add_argument('--exclude',
+                            help="only do actions matching EXCLUDE")
         self.config = parser.parse_args(args)
         # List of local files we had in the relevant directories.
         self.encountered_files = {}
@@ -173,6 +175,13 @@ class Humbug(object):
             # FIXME: some kind of actual pattern matching or something
             actions_queue = [action for action in actions_queue
                              if include in str(action)]
+
+        if self.config.exclude:
+            exclude = self.config.exclude
+            print
+            print "Excluding actions that match {}".format(exclude)
+            actions_queue = [action for action in actions_queue
+                             if exclude not in str(action)]
 
         print
         print "Will perform these actions:"
